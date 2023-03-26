@@ -1,9 +1,11 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMessageBox, QLineEdit
 import sys
 import cv2
 from PIL import Image
 import math
+
+globalCapture = None
 
 class QtCapture(QtWidgets.QWidget):
     def __init__(self, *args):
@@ -11,15 +13,30 @@ class QtCapture(QtWidgets.QWidget):
 
         self.fps = 24
         self.cap = cv2.VideoCapture(*args)
+        self.mode = 0
+        # 0: Normal capture mode
+        # 1: Calibrate mode
+        self.face_detection_coeff = 0.8
+        self.close_callback = None
 
         self.video_frame = QtWidgets.QLabel()
         lay = QtWidgets.QVBoxLayout()
-        # lay.setMargin(0)
         lay.addWidget(self.video_frame)
         self.setLayout(lay)
+        self.setWindowTitle('Capture Window')
+
+        if self.mode == 1:
+            self.calibrate()
 
     def setFPS(self, fps):
         self.fps = fps
+
+    def setMode(self, mode):
+        if mode == "calibrate" or mode == 1:
+            self.mode = 1
+
+    def calibrate(self):
+        pass
 
     def nextFrameSlot(self):
         ret, frame = self.cap.read()
@@ -40,6 +57,43 @@ class QtCapture(QtWidgets.QWidget):
     def deleteLater(self):
         self.cap.release()
         super(QtWidgets.QWidget, self).deleteLater()
+
+    def setCloseCallback(self, callback):
+        self.close_callback = callback
+
+    def closeEvent(self, event):
+        self.close_callback()
+        event.accept()
+
+class CalibrateWindow(QtWidgets.QWidget):
+    def __init__(self, *args):
+        super(QtWidgets.QWidget, self).__init__()
+
+        self.capture = globalCapture
+        self.people = 0
+
+        self.calibrate_button = QtWidgets.QPushButton('Calibrate')
+        self.calibrate_button.clicked.connect(self.startCalibration)
+
+        self.peopleLineEdit = QtWidgets.QLineEdit()
+        lay = QtWidgets.QVBoxLayout()
+        lay.addWidget(self.peopleLineEdit)
+        self.setLayout(lay)
+        self.setGeometry(200, 200, 200, 200)
+
+    def startCalibration(self):
+        if self.people != 0:
+            self.capture = globalCapture
+            self.end_button.clicked.connect(self.pause_continue)
+            self.capture.setFPS(30)
+            self.capture.setParent(self)
+            self.capture.setWindowFlags(QtCore.Qt.Tool)
+            salf.capture.setMode("calibrate")
+
+            self.capture.start()
+            self.capture.show()
+        
+        self.close()
 
 class ControlWindow(QtWidgets.QWidget):
     def __init__(self):
@@ -65,16 +119,16 @@ class ControlWindow(QtWidgets.QWidget):
         vbox.addWidget(self.quit_button)
         self.setLayout(vbox)
         self.setWindowTitle('Control Panel')
-        self.setGeometry(100, 100, 200, 200)
-        # self.show()
         self.showFullScreen()
 
     def calibrate(self):
-        pass
+        calibrateWindow = CalibrateWindow()
+        calibrate.show()
 
     def startCapture(self):
         if not self.capture:
-            self.capture = QtCapture(0)
+            self.capture = globalCapture
+            self.capture.setCloseCallback(self.captureQuitHandler)
             self.end_button.clicked.connect(self.pause_continue)
             self.capture.setFPS(30)
             self.capture.setParent(self)
@@ -99,6 +153,9 @@ class ControlWindow(QtWidgets.QWidget):
             self.capture = None
         self.close_window()
 
+    def captureQuitHandler(self):
+        self.capture = None
+
     def close_window(self):
         self.close()
 
@@ -112,8 +169,13 @@ class ControlWindow(QtWidgets.QWidget):
             event.ignore()
 
 def main():
+    global globalCapture
+
     app = QApplication(sys.argv)
     control_window = ControlWindow()
+
+    globalCapture = QtCapture(0)
+
     sys.exit(app.exec_())
 
 main()
