@@ -42,7 +42,7 @@ class QtCapture(QtWidgets.QWidget):
     def __init__(self, *args):
         super(QtWidgets.QWidget, self).__init__()
 
-        self.fps = 24
+        self.fps = 30
         self.cap = cv2.VideoCapture(*args)
         self.calibrate = 0
         # 0: Normal capture mode
