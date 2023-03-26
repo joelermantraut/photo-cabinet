@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMessageBox
 import sys
 import cv2
 from PIL import Image
@@ -66,7 +66,8 @@ class ControlWindow(QtWidgets.QWidget):
         self.setLayout(vbox)
         self.setWindowTitle('Control Panel')
         self.setGeometry(100, 100, 200, 200)
-        self.show()
+        # self.show()
+        self.showFullScreen()
 
     def calibrate(self):
         pass
@@ -96,6 +97,19 @@ class ControlWindow(QtWidgets.QWidget):
         if self.capture:
             self.capture.deleteLater()
             self.capture = None
+        self.close_window()
+
+    def close_window(self):
+        self.close()
+
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to close the window?',
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
 def main():
     app = QApplication(sys.argv)
