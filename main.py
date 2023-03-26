@@ -68,7 +68,12 @@ class QtCapture(QtWidgets.QWidget):
             self.frame = None
             return # cv2.cvtColor receive not initialized frame
 
-        img = QtGui.QImage(frame, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
+        img = QtGui.QImage(
+            self.frame,
+            self.frame.shape[1],
+            self.frame.shape[0],
+            QtGui.QImage.Format_RGB888
+        )
         pix = QtGui.QPixmap.fromImage(img)
         self.video_frame.setPixmap(pix)
 
@@ -106,7 +111,6 @@ class QtCalibrationCapture(QtCapture):
 
     def setCalibrateParam(self, people):
         self.people = people
-        self.calibrate = True
         self.face_detection_comparisons = 0
 
     def tuneFaceDetectionParam(self, people, people_on_image):
@@ -121,8 +125,6 @@ class QtCalibrationCapture(QtCapture):
         self.face_detection_comparisons += 1
 
         if self.face_detection_comparisons > self.FACE_DETECTION_COMPARISONS_LIMIT:
-            self.calibrate = False
-
             configActions = ConfigManager()
             configActions.set("face_detection_coeff", str(self.face_detection_coeff))
             configActions.save()
@@ -147,7 +149,9 @@ class QtCalibrationCapture(QtCapture):
         return result
 
     def nextFrameSlot(self):
-        if self.calibrate:
+        super().nextFrameSlot()
+
+        if self.frame is not None:
             self.compareToCalibrate(self.frame)
 
 class CalibrateWindow(QtWidgets.QWidget):
