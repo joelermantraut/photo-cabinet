@@ -107,6 +107,9 @@ class QtCapture(QtWidgets.QWidget):
         self.face_detection_coeff = 0.8
         self.face_detection_fn = mp.solutions.face_detection.FaceDetection(self.face_detection_coeff)
 
+        self.initUI()
+
+    def initUI(self):
         self.lay = QtWidgets.QGridLayout()
         self.setLayout(self.lay)
 
@@ -168,21 +171,20 @@ class QtCapture(QtWidgets.QWidget):
 
 class QtSaveContentCapture(QtCapture):
     def __init__(self, *args):
+        self.phrases_list = [
+            "Press SPACE to start...",
+            "Another photo?",
+            "Last one!!",
+            "Ready!! Press SPACE again to restart..."
+        ]
+        # Needs to be before because initUI uses it
+        # and it is called in QtCapture.__init__
+
         super().__init__(*args)
 
         self.IMAGES_SESSION = IMAGES_PER_SESSION
         self.TIME_LIMIT = 3
         # Seconds to wait for capture
-
-        self.timer_label = QtWidgets.QLabel()
-        self.timer_label.setText("Temporizador...")
-
-        self.bottom_label = QtWidgets.QLabel()
-        self.bottom_label.setText("Press SPACE to start...")
-
-        self.lay.addWidget(self.timer_label, 1, 0, alignment=Qt.AlignTop)
-        self.lay.addWidget(self.bottom_label, 2, 1)
-        # TODO: Changes this labels size and styles
 
         self.photos_taken = list()
         self.prev = 0
@@ -192,6 +194,21 @@ class QtSaveContentCapture(QtCapture):
         self.imageProcessor = ImageProcessor(self.IMAGES_SESSION)
 
         self.setWindowTitle('Capture Window')
+
+    def addLabel(self, text, fontSized):
+        label = QtWidgets.QLabel(text)
+        label.setFont(QtGui.QFont('Arial', fontSized))
+
+        return label
+
+    def initUI(self):
+        super().initUI()
+
+        self.timer_label = self.addLabel("-", 40)
+        self.bottom_label = self.addLabel(self.phrases_list[0], 10)
+
+        self.lay.addWidget(self.timer_label, 1, 0, alignment=Qt.AlignTop)
+        self.lay.addWidget(self.bottom_label, 2, 1)
 
     def update_timer(self):
         if self.cur_timer == 0:
@@ -208,6 +225,9 @@ class QtSaveContentCapture(QtCapture):
                     )
                 )
                 # Tuple of image and number of faces detected on it
+
+                self.bottom_label.setText(self.phrases_list[len(self.photos_taken)])
+                # Changes bottom label text depending on number of photon taken
 
                 if len(self.photos_taken) == self.IMAGES_SESSION:
                     datetime_string = datetime.now().strftime("%H-%M-%S")
@@ -335,7 +355,7 @@ class ControlWindow(QtWidgets.QWidget):
 
     def addLabel(self, text, fontSize):
         label = QtWidgets.QLabel(text)
-        label.setFont(QtGui.QFont('Arial', 25))
+        label.setFont(QtGui.QFont('Arial', fontSize))
 
         return label
 
