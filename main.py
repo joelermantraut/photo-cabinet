@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMessageBox, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMessageBox, QLineEdit, QSizePolicy
 import sys
 import cv2
 from PIL import Image
@@ -15,6 +15,7 @@ CONFIG_FILENAME = ".config"
 IMAGES_PER_SESSION = 3
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 MAIN_FOLDER = f"{DIRECTORY}/images"
+# TODO: Add console input to modify this parameters
 
 class ConfigManager():
     def __init__(self):
@@ -49,6 +50,7 @@ class ConfigManager():
 class ImageProcessor():
     def __init__(self, images_session):
         self.IMAGES_SESSION = images_session
+        # TODO: Manage directory and create if not exists
 
     def save(self, images_list, filename):
         images = list()
@@ -62,6 +64,9 @@ class ImageProcessor():
 
         faces = max(faces)
         # Total faces in 1 image
+
+        # TODO: Review if this is the best method to get all
+        # faces in three images
 
         width, height = images[0].size
 
@@ -175,8 +180,9 @@ class QtSaveContentCapture(QtCapture):
         self.bottom_label = QtWidgets.QLabel()
         self.bottom_label.setText("Press SPACE to start...")
 
-        self.lay.addWidget(self.timer_label, 1, 0)
+        self.lay.addWidget(self.timer_label, 1, 0, alignment=Qt.AlignTop)
         self.lay.addWidget(self.bottom_label, 2, 1)
+        # TODO: Changes this labels size and styles
 
         self.photos_taken = list()
         self.prev = 0
@@ -311,26 +317,46 @@ class ControlWindow(QtWidgets.QWidget):
         self.pause = False
         self.calibrateWindow = None
 
-        self.start_button = QtWidgets.QPushButton('Start')
-        self.start_button.clicked.connect(self.startCapture)
+        self.initUI()
 
-        self.end_button = QtWidgets.QPushButton('Pause/Continue')
-
-        self.quit_button = QtWidgets.QPushButton('End')
-        self.quit_button.clicked.connect(self.endCapture)
-
-        self.calibrate_button = QtWidgets.QPushButton("Calibrate")
-        self.calibrate_button.clicked.connect(self.calibrate)
-
-        vbox = QtWidgets.QVBoxLayout(self)
-        vbox.addWidget(self.start_button)
-        vbox.addWidget(self.calibrate_button)
-        vbox.addWidget(self.end_button)
-        vbox.addWidget(self.quit_button)
-        self.setLayout(vbox)
         self.setWindowTitle('Control Panel')
         # self.showFullScreen()
         self.showMaximized()
+
+    def addButton(self, text, callback=None):
+        button = QtWidgets.QPushButton(text)
+        button.setFont(QtGui.QFont('Arial', 15))
+        button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
+        if callback:
+            button.clicked.connect(callback)
+
+        return button
+
+    def addLabel(self, text, fontSize):
+        label = QtWidgets.QLabel(text)
+        label.setFont(QtGui.QFont('Arial', 25))
+
+        return label
+
+    def initUI(self):
+
+        self.title = self.addLabel("Photo Cabinet", 25)
+
+        self.start_button = self.addButton("Start", self.startCapture)
+        self.end_button = self.addButton("Pause/Continue")
+        self.quit_button = self.addButton("End", self.endCapture)
+        self.calibrate_button = self.addButton("Calibrate", self.calibrate)
+
+        gbox = QtWidgets.QGridLayout(self)
+
+        gbox.addWidget(self.title, 0, 0)
+        gbox.addWidget(self.start_button, 1, 0)
+        gbox.addWidget(self.calibrate_button, 1, 1)
+        gbox.addWidget(self.end_button, 2, 0)
+        gbox.addWidget(self.quit_button, 2, 1)
+
+        self.setLayout(gbox)
 
     def calibrate(self):
         self.calibrateWindow = CalibrateWindow()
