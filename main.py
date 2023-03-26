@@ -45,35 +45,57 @@ class ControlWindow(QtWidgets.QWidget):
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
         self.capture = None
+        self.pause = False
 
         self.start_button = QtWidgets.QPushButton('Start')
         self.start_button.clicked.connect(self.startCapture)
+
+        self.end_button = QtWidgets.QPushButton('Pause/Continue')
+
         self.quit_button = QtWidgets.QPushButton('End')
         self.quit_button.clicked.connect(self.endCapture)
-        self.end_button = QtWidgets.QPushButton('Stop')
+
+        self.calibrate_button = QtWidgets.QPushButton("Calibrate")
+        self.calibrate_button.clicked.connect(self.calibrate)
 
         vbox = QtWidgets.QVBoxLayout(self)
         vbox.addWidget(self.start_button)
+        vbox.addWidget(self.calibrate_button)
         vbox.addWidget(self.end_button)
         vbox.addWidget(self.quit_button)
         self.setLayout(vbox)
         self.setWindowTitle('Control Panel')
-        self.setGeometry(100,100,200,200)
+        self.setGeometry(100, 100, 200, 200)
         self.show()
+
+    def calibrate(self):
+        pass
 
     def startCapture(self):
         if not self.capture:
             self.capture = QtCapture(0)
-            self.end_button.clicked.connect(self.capture.stop)
+            self.end_button.clicked.connect(self.pause_continue)
             self.capture.setFPS(30)
             self.capture.setParent(self)
             self.capture.setWindowFlags(QtCore.Qt.Tool)
         self.capture.start()
         self.capture.show()
 
+    def pause_continue(self):
+        if self.capture and self.pause:
+            self.capture.start()
+        elif self.capture and not self.pause:
+            self.capture.stop()
+        else:
+            return
+            # Capture not created
+
+        self.pause = not self.pause
+
     def endCapture(self):
-        self.capture.deleteLater()
-        self.capture = None
+        if self.capture:
+            self.capture.deleteLater()
+            self.capture = None
 
 def main():
     app = QApplication(sys.argv)
