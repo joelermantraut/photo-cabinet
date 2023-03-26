@@ -50,7 +50,9 @@ class ConfigManager():
 class ImageProcessor():
     def __init__(self, images_session):
         self.IMAGES_SESSION = images_session
-        # TODO: Manage directory and create if not exists
+
+        if not os.path.exists(MAIN_FOLDER):
+            os.makedirs(MAIN_FOLDER)
 
     def save(self, images_list, filename):
         images = list()
@@ -427,8 +429,6 @@ class ControlWindow(QtWidgets.QWidget):
         event.accept()
 
 def main():
-    global globalCapture
-
     app = QApplication(sys.argv)
     control_window = ControlWindow()
 
