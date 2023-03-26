@@ -180,54 +180,50 @@ class QtSaveContentCapture(QtCapture):
 
         self.photos_taken = list()
         self.prev = 0
-        self.cur_timer = self.TIME_LIMIT
+        self.cur_timer = 0
         self.timer_working = False
 
         self.imageProcessor = ImageProcessor(self.IMAGES_SESSION)
 
         self.setWindowTitle('Capture Window')
 
-    def update_timer(self, timer):
-        self.timer_label.setText(str(timer))
+    def update_timer(self):
+        if self.cur_timer == 0:
+            self.cur_timer = self.TIME_LIMIT
+        else:
+            self.cur_timer -= 1
+
+        if self.cur_timer <= 0:
+            if self.frame is not None:
+                self.photos_taken.append(
+                    (
+                        copy.copy(self.frame),
+                        self.getPeopleOnImage(self.frame)
+                    )
+                )
+                # Tuple of image and number of faces detected on it
+
+                if len(self.photos_taken) == self.IMAGES_SESSION:
+                    datetime_string = datetime.now().strftime("%H-%M-%S")
+                    img_name = f"{MAIN_FOLDER}/{datetime_string}.png"
+                    self.imageProcessor.save(self.photos_taken, img_name)
+
+                    self.photos_taken = list()
+                    self.timer_timer.stop()
+
+        self.timer_label.setText(str(self.cur_timer))
 
     def nextFrameSlot(self):
         super().nextFrameSlot()
 
-        if self.timer_working:
-            cur = time.time()
-
-            if cur - self.prev >= 1:
-                self.prev = cur
-                self.cur_timer = self.cur_timer - 1
-                self.update_timer(self.cur_timer)
-
-                if self.cur_timer <= 0:
-                    self.cur_timer = self.TIME_LIMIT
-
-                    if self.frame is not None:
-                        self.photos_taken.append(
-                            (
-                                copy.copy(self.frame),
-                                self.getPeopleOnImage(self.frame)
-                            )
-                        )
-                        # Tuple of image and number of faces detected on it
-
-                        if len(self.photos_taken) == self.IMAGES_SESSION:
-                            datetime_string = datetime.now().strftime("%H-%M-%S")
-                            img_name = f"{MAIN_FOLDER}/{datetime_string}.png"
-                            self.imageProcessor.save(self.photos_taken, img_name)
-
-                            self.photos_taken = list()
-                            self.timer_working = False
-
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Space:
             if not self.timer_working:
-                self.timer_working = True
-                self.cur_timer = self.TIME_LIMIT
-                self.prev = time.time()
-                self.update_timer(self.cur_timer)
+                self.timer_timer = QtCore.QTimer()
+                self.timer_timer.timeout.connect(self.update_timer)
+                self.timer_timer.start(1000)
+
+                self.update_timer()
 
 class QtCalibrationCapture(QtCapture):
     def __init__(self, *args):
