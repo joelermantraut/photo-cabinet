@@ -4,8 +4,7 @@ import sys
 import cv2
 from PIL import Image
 import math
-
-globalCapture = None
+import mediapipe as mp
 
 class QtCapture(QtWidgets.QWidget):
     def __init__(self, *args):
@@ -13,11 +12,15 @@ class QtCapture(QtWidgets.QWidget):
 
         self.fps = 24
         self.cap = cv2.VideoCapture(*args)
-        self.mode = 0
+        self.calibrate = 0
         # 0: Normal capture mode
         # 1: Calibrate mode
         self.face_detection_coeff = 0.8
         self.close_callback = None
+        self.face_detection_comparisons = 0
+        self.FACE_DETECTION_COMPARISONS_LIMIT = 100
+
+        self.face_detection_fn = mp.solutions.face_detection.FaceDetection(self.face_detection_coeff)
 
         self.video_frame = QtWidgets.QLabel()
         lay = QtWidgets.QVBoxLayout()
@@ -25,18 +28,45 @@ class QtCapture(QtWidgets.QWidget):
         self.setLayout(lay)
         self.setWindowTitle('Capture Window')
 
-        if self.mode == 1:
-            self.calibrate()
-
     def setFPS(self, fps):
         self.fps = fps
 
-    def setMode(self, mode):
-        if mode == "calibrate" or mode == 1:
-            self.mode = 1
+    def setCalibrateParam(self, people):
+        self.people = people
+        self.calibrate = True
+        self.face_detection_comparisons = 0
 
-    def calibrate(self):
-        pass
+    def compareToCalibrate(self, frame):
+        self.face_detection_comparisons += 1
+
+        if self.face_detection_comparisons > self.FACE_DETECTION_COMPARISONS_LIMIT:
+            self.calibrate = False
+            print(self.face_detection_coeff)
+            self.close()
+
+        people_on_image = self.getPeopleOnImage(frame)
+
+        if self.people > people_on_image:
+            self.face_detection_coeff *= 0.9
+        elif self.people < people_on_image:
+            self.face_detection_coeff *= 1.1
+        else:
+            return
+            # coeff is ok, not modify it
+
+        self.face_detection_fn = mp.solutions.face_detection.FaceDetection(self.face_detection_coeff)
+        # Updates face detection coefficents
+
+    def getPeopleOnImage(self, frame):
+        imgRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        result = self.face_detection_fn.process(imgRGB)
+
+        if not result or (result and not result.detections):
+            result = 0
+        else:
+            result = len(result.detections)
+
+        return result
 
     def nextFrameSlot(self):
         ret, frame = self.cap.read()
@@ -46,10 +76,14 @@ class QtCapture(QtWidgets.QWidget):
         pix = QtGui.QPixmap.fromImage(img)
         self.video_frame.setPixmap(pix)
 
+        if self.calibrate:
+            self.compareToCalibrate(frame)
+
     def start(self):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.nextFrameSlot)
         self.timer.start(math.ceil(1000.0 / self.fps))
+        # Rounded to closest integer up calculated value
 
     def stop(self):
         self.timer.stop()
@@ -62,14 +96,14 @@ class QtCapture(QtWidgets.QWidget):
         self.close_callback = callback
 
     def closeEvent(self, event):
-        self.close_callback()
+        if self.close_callback:
+            self.close_callback()
         event.accept()
 
 class CalibrateWindow(QtWidgets.QWidget):
     def __init__(self, *args):
         super(QtWidgets.QWidget, self).__init__()
 
-        self.capture = globalCapture
         self.people = 0
 
         self.calibrate_button = QtWidgets.QPushButton('Calibrate')
@@ -78,28 +112,31 @@ class CalibrateWindow(QtWidgets.QWidget):
         self.peopleLineEdit = QtWidgets.QLineEdit()
         lay = QtWidgets.QVBoxLayout()
         lay.addWidget(self.peopleLineEdit)
+        lay.addWidget(self.calibrate_button)
         self.setLayout(lay)
-        self.setGeometry(200, 200, 200, 200)
+        # self.setGeometry(200, 200, 200, 200)
+        self.setWindowTitle('Calibrate Window')
+        self.show()
 
     def startCalibration(self):
+        self.people = int(self.peopleLineEdit.text())
         if self.people != 0:
-            self.capture = globalCapture
-            self.end_button.clicked.connect(self.pause_continue)
+            self.capture = QtCapture(0)
+            self.capture.setCloseCallback(self.close)
             self.capture.setFPS(30)
             self.capture.setParent(self)
             self.capture.setWindowFlags(QtCore.Qt.Tool)
-            salf.capture.setMode("calibrate")
+            self.capture.setCalibrateParam(self.people)
 
             self.capture.start()
             self.capture.show()
-        
-        self.close()
 
 class ControlWindow(QtWidgets.QWidget):
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
         self.capture = None
         self.pause = False
+        self.calibrateWindow = None
 
         self.start_button = QtWidgets.QPushButton('Start')
         self.start_button.clicked.connect(self.startCapture)
@@ -119,15 +156,16 @@ class ControlWindow(QtWidgets.QWidget):
         vbox.addWidget(self.quit_button)
         self.setLayout(vbox)
         self.setWindowTitle('Control Panel')
-        self.showFullScreen()
+        # self.showFullScreen()
+        self.showMaximized()
 
     def calibrate(self):
-        calibrateWindow = CalibrateWindow()
-        calibrate.show()
+        self.calibrateWindow = CalibrateWindow()
+        self.calibrateWindow.show()
 
     def startCapture(self):
         if not self.capture:
-            self.capture = globalCapture
+            self.capture = QtCapture(0)
             self.capture.setCloseCallback(self.captureQuitHandler)
             self.end_button.clicked.connect(self.pause_continue)
             self.capture.setFPS(30)
@@ -160,21 +198,20 @@ class ControlWindow(QtWidgets.QWidget):
         self.close()
 
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to close the window?',
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        # reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to close the window?',
+        #         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
-        if reply == QMessageBox.Yes:
-            event.accept()
-        else:
-            event.ignore()
+        # if reply == QMessageBox.Yes:
+        #     event.accept()
+        # else:
+        #     event.ignore()
+        event.accept()
 
 def main():
     global globalCapture
 
     app = QApplication(sys.argv)
     control_window = ControlWindow()
-
-    globalCapture = QtCapture(0)
 
     sys.exit(app.exec_())
 
