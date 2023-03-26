@@ -1,5 +1,6 @@
 import cv2
 import os, sys
+import argparse
 import mediapipe as mp
 import math, time, copy
 
@@ -433,7 +434,33 @@ class ControlWindow(QWidget):
         #     event.ignore()
         event.accept()
 
+class ArgParsing():
+    def __init__(self):
+        self.ap = None
+        self.set()
+
+    def set(self):
+        self.ap = argparse.ArgumentParser()
+        self.ap.add_argument("-c", "--config", required=False, help="Sets config file name and path")
+        self.ap.add_argument("-m", "--main", required=False, help="Sets images folder path")
+        self.ap.add_argument("-i", "--images", required=False, help="Sets number of images per session")
+
+    def get(self):
+        return vars(self.ap.parse_args())
+
 def main():
+    global CONFIG_FILENAME, MAIN_FOLDER, IMAGES_PER_SESSION
+
+    argparsing = ArgParsing()
+    args = argparsing.get()
+
+    if args["config"]:
+        CONFIG_FILENAME = args["config"]
+    if args["main"]:
+        MAIN_FOLDER = args["main"]
+    if args["images"]:
+        IMAGES_PER_SESSION = args["images"]
+
     app = QApplication(sys.argv)
     control_window = ControlWindow()
 
