@@ -5,8 +5,16 @@ import cv2
 from PIL import Image
 import math
 import mediapipe as mp
+from PyQt5.Qt import Qt
+import time
+import copy
+import os
+from datetime import datetime
 
 CONFIG_FILENAME = ".config"
+IMAGES_PER_SESSION = 3
+DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+MAIN_FOLDER = f"{DIRECTORY}/images"
 
 class ConfigManager():
     def __init__(self):
@@ -38,26 +46,81 @@ class ConfigManager():
         with open(CONFIG_FILENAME, "w") as file:
             file.write(file_content)
 
+class ImageProcessor():
+    def __init__(self, images_session):
+        self.IMAGES_SESSION = images_session
+
+    def save(self, images_list, filename):
+        images = list()
+        faces = list()
+
+        for item in images_list:
+            image, face = item
+            image = Image.fromarray(image)
+            images.append(image)
+            faces.append(face)
+
+        faces = max(faces)
+        # Total faces in 1 image
+
+        width, height = images[0].size
+
+        total_width = width * 3 + 40 # Offset * 4
+        max_height = height + 20 # Offset de 10 arriba y abajo
+
+        new_im_x = Image.new('RGB', (total_width, max_height), (255, 255, 255))
+
+        x_offset = 10
+        for im in images:
+            new_im_x.paste(im, (x_offset, 10))
+            x_offset += total_width // len(images_list) + 10
+
+        new_im_y = Image.new('RGB', (total_width, max_height * faces), (255, 255, 255))
+
+        y_offset = 10
+        for im in images:
+            new_im_y.paste(new_im_x, (10, y_offset))
+            y_offset += max_height + 10
+
+        new_im_y.save(filename)
+
 class QtCapture(QtWidgets.QWidget):
-    def __init__(self, *args):
+    def __init__(self, *args, fps=30, width=840, height=680):
         super(QtWidgets.QWidget, self).__init__()
 
-        self.fps = 30
-        self.frame = None
+        self.fps = fps
         self.cap = cv2.VideoCapture(*args)
-        self.face_detection_coeff = 0.8
+
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        self.cap.set(cv2.CAP_PROP_FPS, self.fps)
+
+        self.frame = None
         self.close_callback = None
 
+        self.face_detection_coeff = 0.8
         self.face_detection_fn = mp.solutions.face_detection.FaceDetection(self.face_detection_coeff)
 
+        self.lay = QtWidgets.QGridLayout()
+        self.setLayout(self.lay)
+
         self.video_frame = QtWidgets.QLabel()
-        lay = QtWidgets.QVBoxLayout()
-        lay.addWidget(self.video_frame)
-        self.setLayout(lay)
-        self.setWindowTitle('Capture Window')
+        self.lay.addWidget(self.video_frame, 1, 1)
 
     def setFPS(self, fps):
         self.fps = fps
+        self.cap.set(cv2.CAP_PROP_FPS, self.fps)
+
+    def getPeopleOnImage(self, frame):
+        result = self.face_detection_fn.process(frame)
+
+        if not result or (result and not result.detections):
+            result = 0
+        else:
+            result = len(result.detections)
+
+        return result
 
     def nextFrameSlot(self):
         ret, frame = self.cap.read()
@@ -102,12 +165,81 @@ class QtSaveContentCapture(QtCapture):
     def __init__(self, *args):
         super().__init__(*args)
 
+        self.IMAGES_SESSION = IMAGES_PER_SESSION
+        self.TIME_LIMIT = 3
+        # Seconds to wait for capture
+
+        self.timer_label = QtWidgets.QLabel()
+        self.timer_label.setText("Temporizador...")
+
+        self.bottom_label = QtWidgets.QLabel()
+        self.bottom_label.setText("Press SPACE to start...")
+
+        self.lay.addWidget(self.timer_label, 1, 0)
+        self.lay.addWidget(self.bottom_label, 2, 1)
+
+        self.photos_taken = list()
+        self.prev = 0
+        self.cur_timer = self.TIME_LIMIT
+        self.timer_working = False
+
+        self.imageProcessor = ImageProcessor(self.IMAGES_SESSION)
+
+        self.setWindowTitle('Capture Window')
+
+    def update_timer(self, timer):
+        self.timer_label.setText(str(timer))
+
+    def nextFrameSlot(self):
+        super().nextFrameSlot()
+
+        if self.timer_working:
+            cur = time.time()
+
+            if cur - self.prev >= 1:
+                self.prev = cur
+                self.cur_timer = self.cur_timer - 1
+                self.update_timer(self.cur_timer)
+
+                if self.cur_timer <= 0:
+                    self.cur_timer = self.TIME_LIMIT
+
+                    if self.frame is not None:
+                        self.photos_taken.append(
+                            (
+                                copy.copy(self.frame),
+                                self.getPeopleOnImage(self.frame)
+                            )
+                        )
+                        # Tuple of image and number of faces detected on it
+
+                        if len(self.photos_taken) == self.IMAGES_SESSION:
+                            datetime_string = datetime.now().strftime("%H-%M-%S")
+                            img_name = f"{MAIN_FOLDER}/{datetime_string}.png"
+                            self.imageProcessor.save(self.photos_taken, img_name)
+
+                            self.photos_taken = list()
+                            self.timer_working = False
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Space:
+            if not self.timer_working:
+                self.timer_working = True
+                self.cur_timer = self.TIME_LIMIT
+                self.prev = time.time()
+                self.update_timer(self.cur_timer)
+
 class QtCalibrationCapture(QtCapture):
     def __init__(self, *args):
         super().__init__(*args)
 
         self.face_detection_comparisons = 0
-        self.FACE_DETECTION_COMPARISONS_LIMIT = 100
+        self.FACE_DETECTION_COMPARISONS_LIMIT = self.fps * 10
+        # 10 frames to calibrate
+
+        self.bottom_label = QtWidgets.QLabel()
+        self.bottom_label.setText("Calibrating... Please wait")
+        self.lay.addWidget(self.bottom_label, 2, 1)
 
     def setCalibrateParam(self, people):
         self.people = people
@@ -138,16 +270,6 @@ class QtCalibrationCapture(QtCapture):
         self.face_detection_fn = mp.solutions.face_detection.FaceDetection(self.face_detection_coeff)
         # Updates face detection coeffs
 
-    def getPeopleOnImage(self, frame):
-        result = self.face_detection_fn.process(frame)
-
-        if not result or (result and not result.detections):
-            result = 0
-        else:
-            result = len(result.detections)
-
-        return result
-
     def nextFrameSlot(self):
         super().nextFrameSlot()
 
@@ -168,14 +290,13 @@ class CalibrateWindow(QtWidgets.QWidget):
         lay.addWidget(self.peopleLineEdit)
         lay.addWidget(self.calibrate_button)
         self.setLayout(lay)
-        # self.setGeometry(200, 200, 200, 200)
+        self.setGeometry(200, 200, 200, 200)
         self.setWindowTitle('Calibrate Window')
         self.show()
 
     def startCalibration(self):
         self.people = int(self.peopleLineEdit.text())
         if self.people != 0:
-            # self.capture = QtCapture(0)
             self.capture = QtCalibrationCapture(0)
             self.capture.setCloseCallback(self.close)
             # When capture closes, close this window
@@ -221,7 +342,7 @@ class ControlWindow(QtWidgets.QWidget):
 
     def startCapture(self):
         if not self.capture:
-            self.capture = QtCapture(0)
+            self.capture = QtSaveContentCapture(0)
             self.capture.setCloseCallback(self.captureQuitHandler)
             self.end_button.clicked.connect(self.pause_continue)
             self.capture.setFPS(30)
