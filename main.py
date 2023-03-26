@@ -1,15 +1,20 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMessageBox, QLineEdit, QSizePolicy
-import sys
 import cv2
-from PIL import Image
-import math
+import os, sys
 import mediapipe as mp
+import math, time, copy
+
+from PIL import Image
 from PyQt5.Qt import Qt
-import time
-import copy
-import os
 from datetime import datetime
+
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import (
+                                QWidget, QPushButton,
+                                QLabel, QApplication,
+                                QMessageBox, QLineEdit,
+                                QSizePolicy, QVBoxLayout,
+                                QGridLayout
+                            )
 
 CONFIG_FILENAME = ".config"
 IMAGES_PER_SESSION = 3
@@ -91,9 +96,9 @@ class ImageProcessor():
 
         new_im_y.save(filename)
 
-class QtCapture(QtWidgets.QWidget):
+class QtCapture(QWidget):
     def __init__(self, *args, fps=30, width=840, height=680):
-        super(QtWidgets.QWidget, self).__init__()
+        super(QWidget, self).__init__()
 
         self.fps = fps
         self.cap = cv2.VideoCapture(*args)
@@ -112,10 +117,10 @@ class QtCapture(QtWidgets.QWidget):
         self.initUI()
 
     def initUI(self):
-        self.lay = QtWidgets.QGridLayout()
+        self.lay = QGridLayout()
         self.setLayout(self.lay)
 
-        self.video_frame = QtWidgets.QLabel()
+        self.video_frame = QLabel()
         self.lay.addWidget(self.video_frame, 1, 1)
 
     def setFPS(self, fps):
@@ -161,7 +166,7 @@ class QtCapture(QtWidgets.QWidget):
 
     def deleteLater(self):
         self.cap.release()
-        super(QtWidgets.QWidget, self).deleteLater()
+        super(QWidget, self).deleteLater()
 
     def setCloseCallback(self, callback):
         self.close_callback = callback
@@ -198,7 +203,7 @@ class QtSaveContentCapture(QtCapture):
         self.setWindowTitle('Capture Window')
 
     def addLabel(self, text, fontSized):
-        label = QtWidgets.QLabel(text)
+        label = QLabel(text)
         label.setFont(QtGui.QFont('Arial', fontSized))
 
         return label
@@ -261,7 +266,7 @@ class QtCalibrationCapture(QtCapture):
         self.FACE_DETECTION_COMPARISONS_LIMIT = self.fps * 10
         # 10 frames to calibrate
 
-        self.bottom_label = QtWidgets.QLabel()
+        self.bottom_label = QLabel()
         self.bottom_label.setText("Calibrating... Please wait")
         self.lay.addWidget(self.bottom_label, 2, 1)
 
@@ -300,17 +305,17 @@ class QtCalibrationCapture(QtCapture):
         if self.frame is not None:
             self.compareToCalibrate(self.frame)
 
-class CalibrateWindow(QtWidgets.QWidget):
+class CalibrateWindow(QWidget):
     def __init__(self, *args):
-        super(QtWidgets.QWidget, self).__init__()
+        super(QWidget, self).__init__()
 
         self.people = 0
 
-        self.calibrate_button = QtWidgets.QPushButton('Calibrate')
+        self.calibrate_button = QPushButton('Calibrate')
         self.calibrate_button.clicked.connect(self.startCalibration)
 
-        self.peopleLineEdit = QtWidgets.QLineEdit()
-        lay = QtWidgets.QVBoxLayout()
+        self.peopleLineEdit = QLineEdit()
+        lay = QVBoxLayout()
         lay.addWidget(self.peopleLineEdit)
         lay.addWidget(self.calibrate_button)
         self.setLayout(lay)
@@ -332,9 +337,9 @@ class CalibrateWindow(QtWidgets.QWidget):
             self.capture.start()
             self.capture.show()
 
-class ControlWindow(QtWidgets.QWidget):
+class ControlWindow(QWidget):
     def __init__(self):
-        QtWidgets.QWidget.__init__(self)
+        QWidget.__init__(self)
         self.capture = None
         self.pause = False
         self.calibrateWindow = None
@@ -346,7 +351,7 @@ class ControlWindow(QtWidgets.QWidget):
         self.showMaximized()
 
     def addButton(self, text, callback=None):
-        button = QtWidgets.QPushButton(text)
+        button = QPushButton(text)
         button.setFont(QtGui.QFont('Arial', 15))
         button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
@@ -356,7 +361,7 @@ class ControlWindow(QtWidgets.QWidget):
         return button
 
     def addLabel(self, text, fontSize):
-        label = QtWidgets.QLabel(text)
+        label = QLabel(text)
         label.setFont(QtGui.QFont('Arial', fontSize))
 
         return label
@@ -370,7 +375,7 @@ class ControlWindow(QtWidgets.QWidget):
         self.quit_button = self.addButton("End", self.endCapture)
         self.calibrate_button = self.addButton("Calibrate", self.calibrate)
 
-        gbox = QtWidgets.QGridLayout(self)
+        gbox = QGridLayout(self)
 
         gbox.addWidget(self.title, 0, 0)
         gbox.addWidget(self.start_button, 1, 0)
