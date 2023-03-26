@@ -8,7 +8,7 @@ import mediapipe as mp
 
 CONFIG_FILENAME = ".config"
 
-class configManager():
+class ConfigManager():
     def __init__(self):
         self.config_dict = dict()
 
@@ -43,14 +43,10 @@ class QtCapture(QtWidgets.QWidget):
         super(QtWidgets.QWidget, self).__init__()
 
         self.fps = 30
+        self.frame = None
         self.cap = cv2.VideoCapture(*args)
-        self.calibrate = 0
-        # 0: Normal capture mode
-        # 1: Calibrate mode
         self.face_detection_coeff = 0.8
         self.close_callback = None
-        self.face_detection_comparisons = 0
-        self.FACE_DETECTION_COMPARISONS_LIMIT = 100
 
         self.face_detection_fn = mp.solutions.face_detection.FaceDetection(self.face_detection_coeff)
 
@@ -63,61 +59,18 @@ class QtCapture(QtWidgets.QWidget):
     def setFPS(self, fps):
         self.fps = fps
 
-    # CALIBRATION METHODS
-
-    def setCalibrateParam(self, people):
-        self.people = people
-        self.calibrate = True
-        self.face_detection_comparisons = 0
-
-    def compareToCalibrate(self, frame):
-        self.face_detection_comparisons += 1
-
-        if self.face_detection_comparisons > self.FACE_DETECTION_COMPARISONS_LIMIT:
-            self.calibrate = False
-
-            configActions = configManager()
-            configActions.set("face_detection_coeff", str(self.face_detection_coeff))
-            configActions.save()
-
-            self.close()
-
-        people_on_image = self.getPeopleOnImage(frame)
-
-        if self.people > people_on_image:
-            self.face_detection_coeff *= 0.9
-        elif self.people < people_on_image:
-            self.face_detection_coeff *= 1.1
-        else:
-            return
-            # coeff is ok, not modify it
-
-        self.face_detection_fn = mp.solutions.face_detection.FaceDetection(self.face_detection_coeff)
-        # Updates face detection coeffs
-
-    def getPeopleOnImage(self, frame):
-        imgRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        result = self.face_detection_fn.process(imgRGB)
-
-        if not result or (result and not result.detections):
-            result = 0
-        else:
-            result = len(result.detections)
-
-        return result
-
-    # CALIBRATION METHODS
-
     def nextFrameSlot(self):
         ret, frame = self.cap.read()
         # OpenCV yields frames in BGR format
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        try:
+            self.frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        except cv2.error:
+            self.frame = None
+            return # cv2.cvtColor receive not initialized frame
+
         img = QtGui.QImage(frame, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
         pix = QtGui.QPixmap.fromImage(img)
         self.video_frame.setPixmap(pix)
-
-        if self.calibrate:
-            self.compareToCalibrate(frame)
 
     def start(self):
         self.timer = QtCore.QTimer()
@@ -140,6 +93,63 @@ class QtCapture(QtWidgets.QWidget):
             self.close_callback()
         event.accept()
 
+class QtSaveContentCapture(QtCapture):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+class QtCalibrationCapture(QtCapture):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+        self.face_detection_comparisons = 0
+        self.FACE_DETECTION_COMPARISONS_LIMIT = 100
+
+    def setCalibrateParam(self, people):
+        self.people = people
+        self.calibrate = True
+        self.face_detection_comparisons = 0
+
+    def tuneFaceDetectionParam(self, people, people_on_image):
+        if self.people > people_on_image:
+            self.face_detection_coeff *= 0.9
+        elif self.people < people_on_image:
+            self.face_detection_coeff *= 1.1
+
+        return self.face_detection_coeff
+
+    def compareToCalibrate(self, frame):
+        self.face_detection_comparisons += 1
+
+        if self.face_detection_comparisons > self.FACE_DETECTION_COMPARISONS_LIMIT:
+            self.calibrate = False
+
+            configActions = ConfigManager()
+            configActions.set("face_detection_coeff", str(self.face_detection_coeff))
+            configActions.save()
+
+            self.close()
+
+        people_on_image = self.getPeopleOnImage(frame)
+
+        self.face_detection_coeff = self.tuneFaceDetectionParam(self.people, people_on_image)
+
+        self.face_detection_fn = mp.solutions.face_detection.FaceDetection(self.face_detection_coeff)
+        # Updates face detection coeffs
+
+    def getPeopleOnImage(self, frame):
+        result = self.face_detection_fn.process(frame)
+
+        if not result or (result and not result.detections):
+            result = 0
+        else:
+            result = len(result.detections)
+
+        return result
+
+    def nextFrameSlot(self):
+        if self.calibrate:
+            self.compareToCalibrate(self.frame)
+
 class CalibrateWindow(QtWidgets.QWidget):
     def __init__(self, *args):
         super(QtWidgets.QWidget, self).__init__()
@@ -161,7 +171,8 @@ class CalibrateWindow(QtWidgets.QWidget):
     def startCalibration(self):
         self.people = int(self.peopleLineEdit.text())
         if self.people != 0:
-            self.capture = QtCapture(0)
+            # self.capture = QtCapture(0)
+            self.capture = QtCalibrationCapture(0)
             self.capture.setCloseCallback(self.close)
             # When capture closes, close this window
             self.capture.setFPS(30)
