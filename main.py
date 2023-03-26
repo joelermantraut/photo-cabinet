@@ -6,6 +6,38 @@ from PIL import Image
 import math
 import mediapipe as mp
 
+CONFIG_FILENAME = ".config"
+
+class configManager():
+    def __init__(self):
+        self.config_dict = dict()
+
+    def parse_config_file(self):
+        with open(CONFIG_FILENAME, "r") as file:
+            file_content = self.config_file.read()
+        
+        lines = file_content.split("\n")
+        for line in lines:
+            param, value = line.split(",")
+            self.config_dict[param] = value
+
+    def set(self, param, value):
+        self.config_dict[param] = value
+
+    def get(self, param):
+        return self.config_dict[param]
+
+    def save(self):
+        file_content = ""
+        for key, value in self.config_dict.items():
+            file_content += f"{key},{value}\n"
+
+        file_content = file_content[:-1]
+        # Deletes last \n to not generate other item on parsing
+
+        with open(CONFIG_FILENAME, "w") as file:
+            file.write(file_content)
+
 class QtCapture(QtWidgets.QWidget):
     def __init__(self, *args):
         super(QtWidgets.QWidget, self).__init__()
@@ -31,6 +63,8 @@ class QtCapture(QtWidgets.QWidget):
     def setFPS(self, fps):
         self.fps = fps
 
+    # CALIBRATION METHODS
+
     def setCalibrateParam(self, people):
         self.people = people
         self.calibrate = True
@@ -41,7 +75,11 @@ class QtCapture(QtWidgets.QWidget):
 
         if self.face_detection_comparisons > self.FACE_DETECTION_COMPARISONS_LIMIT:
             self.calibrate = False
-            print(self.face_detection_coeff)
+
+            configActions = configManager()
+            configActions.set("face_detection_coeff", str(self.face_detection_coeff))
+            configActions.save()
+
             self.close()
 
         people_on_image = self.getPeopleOnImage(frame)
@@ -55,7 +93,7 @@ class QtCapture(QtWidgets.QWidget):
             # coeff is ok, not modify it
 
         self.face_detection_fn = mp.solutions.face_detection.FaceDetection(self.face_detection_coeff)
-        # Updates face detection coefficents
+        # Updates face detection coeffs
 
     def getPeopleOnImage(self, frame):
         imgRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -67,6 +105,8 @@ class QtCapture(QtWidgets.QWidget):
             result = len(result.detections)
 
         return result
+
+    # CALIBRATION METHODS
 
     def nextFrameSlot(self):
         ret, frame = self.cap.read()
@@ -123,6 +163,7 @@ class CalibrateWindow(QtWidgets.QWidget):
         if self.people != 0:
             self.capture = QtCapture(0)
             self.capture.setCloseCallback(self.close)
+            # When capture closes, close this window
             self.capture.setFPS(30)
             self.capture.setParent(self)
             self.capture.setWindowFlags(QtCore.Qt.Tool)
