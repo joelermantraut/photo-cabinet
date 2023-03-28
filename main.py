@@ -42,7 +42,7 @@ class ConfigManager():
 
     def get(self, param):
         if param in self.config_dict.keys():
-            value = elf.config_dict[param]
+            value = self.config_dict[param]
         else:
             value = 0
 
@@ -112,13 +112,14 @@ class QtCapture(QWidget):
     def __init__(self, *args, fps=30, width=840, height=680):
         super(QWidget, self).__init__()
 
-        if len(args) > 0:
-            self.cap = cv2.VideoCapture(*args)
-        else:
+        if len(args) == 0:
             configActions = ConfigManager()
-            capture_index = configActions.get("camera_index")
+            capture_index = int(configActions.get("camera_index"))
 
-            self.cap = cv2.VideoCapture(capture_index)
+            args = (capture_index,)
+
+        print(args)
+        self.cap = cv2.VideoCapture(*args)
 
         self.fps = fps
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
@@ -386,7 +387,7 @@ class CalibrateWindow(QWidget):
     def startCalibration(self):
         self.people = int(self.peopleLineEdit.text())
         if self.people != 0:
-            self.capture = QtCalibrationCapture(0)
+            self.capture = QtCalibrationCapture()
             self.capture.setCloseCallback(self.close)
             # When capture closes, close this window
             self.capture.setParent(self)
@@ -451,7 +452,7 @@ class ControlWindow(QWidget):
 
     def select_camera(self):
         if not self.capture:
-            self.capture = QtSelectCameraCapture(0)
+            self.capture = QtSelectCameraCapture()
             self.capture.setCloseCallback(self.captureQuitHandler)
             self.capture.setParent(self)
             self.capture.setWindowFlags(QtCore.Qt.Tool)
@@ -461,7 +462,7 @@ class ControlWindow(QWidget):
 
     def startCapture(self):
         if not self.capture:
-            self.capture = QtSaveContentCapture(index=0)
+            self.capture = QtSaveContentCapture()
             self.capture.setCloseCallback(self.captureQuitHandler)
             self.end_button.clicked.connect(self.pause_continue)
             self.capture.setParent(self)
