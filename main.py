@@ -74,9 +74,6 @@ class ImageProcessor():
         faces = max(faces)
         # Total faces in 1 image
 
-        # TODO: Review if this is the best method to get all
-        # faces in three images
-
         width, height = images[0].size
 
         total_width = width * IMAGES_PER_SESSION + border_size * (len(images) + 1)
