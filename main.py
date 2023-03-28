@@ -118,7 +118,6 @@ class QtCapture(QWidget):
 
             args = (capture_index,)
 
-        print(args)
         self.cap = cv2.VideoCapture(*args)
 
         self.fps = fps
@@ -156,6 +155,16 @@ class QtCapture(QWidget):
 
         return result
 
+    def showFrame(self, frame):
+        img = QtGui.QImage(
+            self.frame,
+            self.frame.shape[1],
+            self.frame.shape[0],
+            QtGui.QImage.Format_RGB888
+        )
+        pix = QtGui.QPixmap.fromImage(img)
+        self.video_frame.setPixmap(pix)
+
     def nextFrameSlot(self):
         ret, frame = self.cap.read()
         # OpenCV yields frames in BGR format
@@ -165,14 +174,7 @@ class QtCapture(QWidget):
             self.frame = None
             return # cv2.cvtColor receive not initialized frame
 
-        img = QtGui.QImage(
-            self.frame,
-            self.frame.shape[1],
-            self.frame.shape[0],
-            QtGui.QImage.Format_RGB888
-        )
-        pix = QtGui.QPixmap.fromImage(img)
-        self.video_frame.setPixmap(pix)
+        self.showFrame(self.frame)
 
     def start(self):
         self.timer = QtCore.QTimer()
@@ -285,13 +287,53 @@ class QtCalibrationCapture(QtCapture):
         self.FACE_DETECTION_COMPARISONS_LIMIT = self.fps * 10
         # 10 frames to calibrate
 
+        self.calibrating = False
+
+    def addButton(self, text, callback=None):
+        button = QPushButton(text)
+        button.setFont(QtGui.QFont('Arial', 15))
+        button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
+        if callback:
+            button.clicked.connect(callback)
+
+        return button
+
+    def initUI(self):
+        super().initUI()
+
         self.bottom_label = QLabel()
-        self.bottom_label.setText("Calibrating... Please wait")
-        self.lay.addWidget(self.bottom_label, 2, 1)
+
+        self.peopleLineEdit = QLineEdit()
+
+        self.calibrate_button = self.addButton("Calibrate", self.startCalibration)
+
+        self.lay.addWidget(self.peopleLineEdit, 2, 1)
+        self.lay.addWidget(self.calibrate_button, 2, 2)
+        self.lay.addWidget(self.bottom_label, 3, 1)
+
+    def startCalibration(self):
+        self.people = int(self.peopleLineEdit.text())
+        if self.people != 0:
+            self.calibrating = True
+            self.bottom_label.setText("Calibrating... Please wait")
 
     def setCalibrateParam(self, people):
         self.people = people
         self.face_detection_comparisons = 0
+
+    def getPeopleOnImage(self, frame):
+        results = self.face_detection_fn.process(frame)
+        mp_drawing = mp.solutions.drawing_utils
+
+        if not results.detections:
+          return None, 0
+
+        for detection in results.detections:
+            mp_drawing.draw_detection(frame, detection)
+            # Draws rectangles for each detection
+
+        return frame, len(results.detections)
 
     def tuneFaceDetectionParam(self, people, people_on_image):
         if self.people > people_on_image:
@@ -311,7 +353,12 @@ class QtCalibrationCapture(QtCapture):
 
             self.close()
 
-        people_on_image = self.getPeopleOnImage(frame)
+        frame, people_on_image = self.getPeopleOnImage(frame)
+
+        if frame is None or people_on_image == 0:
+            return
+
+        super().showFrame(frame)
 
         self.face_detection_coeff = self.tuneFaceDetectionParam(self.people, people_on_image)
 
@@ -321,7 +368,7 @@ class QtCalibrationCapture(QtCapture):
     def nextFrameSlot(self):
         super().nextFrameSlot()
 
-        if self.frame is not None:
+        if self.calibrating and self.frame is not None:
             self.compareToCalibrate(self.frame)
 
 class QtSelectCameraCapture(QtCapture):
@@ -365,37 +412,6 @@ class QtSelectCameraCapture(QtCapture):
         configActions = ConfigManager()
         configActions.set("camera_index", str(self.current_camera))
         configActions.save()
-
-class CalibrateWindow(QWidget):
-    def __init__(self, *args):
-        super(QWidget, self).__init__()
-
-        self.people = 0
-
-        self.calibrate_button = QPushButton('Calibrate')
-        self.calibrate_button.clicked.connect(self.startCalibration)
-
-        self.peopleLineEdit = QLineEdit()
-        lay = QVBoxLayout()
-        lay.addWidget(self.peopleLineEdit)
-        lay.addWidget(self.calibrate_button)
-        self.setLayout(lay)
-        self.setGeometry(200, 200, 200, 200)
-        self.setWindowTitle('Calibrate Window')
-        self.show()
-
-    def startCalibration(self):
-        self.people = int(self.peopleLineEdit.text())
-        if self.people != 0:
-            self.capture = QtCalibrationCapture()
-            self.capture.setCloseCallback(self.close)
-            # When capture closes, close this window
-            self.capture.setParent(self)
-            self.capture.setWindowFlags(QtCore.Qt.Tool)
-            self.capture.setCalibrateParam(self.people)
-
-            self.capture.start()
-            self.capture.show()
 
 class ControlWindow(QWidget):
     def __init__(self):
@@ -447,8 +463,14 @@ class ControlWindow(QWidget):
         self.setLayout(gbox)
 
     def calibrate(self):
-        self.calibrateWindow = CalibrateWindow()
-        self.calibrateWindow.show()
+        if not self.capture:
+            self.capture = QtCalibrationCapture()
+            self.capture.setCloseCallback(self.captureQuitHandler)
+            self.capture.setParent(self)
+            self.capture.setWindowFlags(QtCore.Qt.Tool)
+
+        self.capture.start()
+        self.capture.show()
 
     def select_camera(self):
         if not self.capture:
