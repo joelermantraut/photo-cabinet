@@ -60,9 +60,6 @@ class ImageProcessor():
             os.makedirs(MAIN_FOLDER)
 
     def save(self, images_list, filename):
-        border_right = Image.open("data/images/right-border.jpg")
-        border_bottom = Image.open("data/images/bottom-border.jpg")
-
         border_size = 10
 
         images = list()
