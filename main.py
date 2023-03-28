@@ -21,7 +21,6 @@ CONFIG_FILENAME = ".config"
 IMAGES_PER_SESSION = 3
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 MAIN_FOLDER = f"{DIRECTORY}/images"
-# TODO: Add console input to modify this parameters
 
 class ConfigManager():
     def __init__(self):
@@ -61,6 +60,8 @@ class ImageProcessor():
             os.makedirs(MAIN_FOLDER)
 
     def save(self, images_list, filename):
+        border_size = 10
+
         images = list()
         faces = list()
 
@@ -78,24 +79,26 @@ class ImageProcessor():
 
         width, height = images[0].size
 
-        total_width = width * 3 + 40 # Offset * 4
-        max_height = height + 20 # Offset de 10 arriba y abajo
+        total_width = width * 3 + border_size * len(images) # Offset * 4
+        max_height = height + border_size * 2 # Offset de 10 arriba y abajo
 
         new_im_x = Image.new('RGB', (total_width, max_height), (255, 255, 255))
 
-        x_offset = 10
+        x_offset = border_size
         for im in images:
             new_im_x.paste(im, (x_offset, 10))
             x_offset += total_width // len(images_list) + 10
 
         new_im_y = Image.new('RGB', (total_width, max_height * faces), (255, 255, 255))
 
-        y_offset = 10
+        y_offset = border_size
         for im in images:
-            new_im_y.paste(new_im_x, (10, y_offset))
-            y_offset += max_height + 10
+            new_im_y.paste(new_im_x, (border_size, y_offset))
+            y_offset += max_height + border_size
 
+        new_im_y.show()
         new_im_y.save(filename)
+        # TODO: Correct borders of final image
 
 class QtCapture(QWidget):
     def __init__(self, *args, fps=30, width=840, height=680):
@@ -368,7 +371,6 @@ class ControlWindow(QWidget):
         return label
 
     def initUI(self):
-
         self.title = self.addLabel("Photo Cabinet", 25)
 
         self.start_button = self.addButton("Start", self.startCapture)
@@ -398,6 +400,7 @@ class ControlWindow(QWidget):
             self.capture.setFPS(30)
             self.capture.setParent(self)
             self.capture.setWindowFlags(QtCore.Qt.Tool)
+
         self.capture.start()
         self.capture.show()
 
