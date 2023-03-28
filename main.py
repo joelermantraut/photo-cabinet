@@ -26,9 +26,11 @@ class ConfigManager():
     def __init__(self):
         self.config_dict = dict()
 
+        self.parse_config_file()
+
     def parse_config_file(self):
         with open(CONFIG_FILENAME, "r") as file:
-            file_content = self.config_file.read()
+            file_content = file.read()
         
         lines = file_content.split("\n")
         for line in lines:
@@ -39,7 +41,12 @@ class ConfigManager():
         self.config_dict[param] = value
 
     def get(self, param):
-        return self.config_dict[param]
+        if param in self.config_dict.keys():
+            value = elf.config_dict[param]
+        else:
+            value = 0
+
+        return value
 
     def save(self):
         file_content = ""
@@ -105,9 +112,15 @@ class QtCapture(QWidget):
     def __init__(self, *args, fps=30, width=840, height=680):
         super(QWidget, self).__init__()
 
-        self.fps = fps
-        self.cap = cv2.VideoCapture(*args)
+        if len(args) > 0:
+            self.cap = cv2.VideoCapture(*args)
+        else:
+            configActions = ConfigManager()
+            capture_index = configActions.get("camera_index")
 
+            self.cap = cv2.VideoCapture(capture_index)
+
+        self.fps = fps
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
@@ -310,6 +323,48 @@ class QtCalibrationCapture(QtCapture):
         if self.frame is not None:
             self.compareToCalibrate(self.frame)
 
+class QtSelectCameraCapture(QtCapture):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+        self.current_camera = 0
+        self.LIMIT_SEARCH = 10
+        # Camera index to stop searching
+
+    def addButton(self, text, callback=None):
+        button = QPushButton(text)
+        button.setFont(QtGui.QFont('Arial', 15))
+        button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
+        if callback:
+            button.clicked.connect(callback)
+
+        return button
+
+    def initUI(self):
+        super().initUI()
+
+        self.change_camera_button = self.addButton("Next Camera", self.next_camera)
+        self.save_and_exit_button = self.addButton("Save and exit", self.save_and_exit)
+        self.lay.addWidget(self.change_camera_button, 2, 1)
+        self.lay.addWidget(self.save_and_exit_button, 3, 1)
+
+    def next_camera(self):
+        is_working = False
+        while not is_working and self.current_camera <= 10:
+            self.cap = cv2.VideoCapture(self.current_camera)
+            if self.cap.isOpened():
+                is_working = True
+            self.current_camera += 1
+
+        if self.current_camera >= 10:
+            self.current_camera = 0
+
+    def save_and_exit(self):
+        configActions = ConfigManager()
+        configActions.set("camera_index", str(self.current_camera))
+        configActions.save()
+
 class CalibrateWindow(QWidget):
     def __init__(self, *args):
         super(QWidget, self).__init__()
@@ -334,7 +389,6 @@ class CalibrateWindow(QWidget):
             self.capture = QtCalibrationCapture(0)
             self.capture.setCloseCallback(self.close)
             # When capture closes, close this window
-            self.capture.setFPS(30)
             self.capture.setParent(self)
             self.capture.setWindowFlags(QtCore.Qt.Tool)
             self.capture.setCalibrateParam(self.people)
@@ -378,6 +432,7 @@ class ControlWindow(QWidget):
         self.end_button = self.addButton("Pause/Continue")
         self.quit_button = self.addButton("End", self.endCapture)
         self.calibrate_button = self.addButton("Calibrate", self.calibrate)
+        self.select_camera_button = self.addButton("Select Camera", self.select_camera)
 
         gbox = QGridLayout(self)
 
@@ -386,6 +441,7 @@ class ControlWindow(QWidget):
         gbox.addWidget(self.calibrate_button, 1, 1)
         gbox.addWidget(self.end_button, 2, 0)
         gbox.addWidget(self.quit_button, 2, 1)
+        gbox.addWidget(self.select_camera_button, 3, 1)
 
         self.setLayout(gbox)
 
@@ -393,12 +449,21 @@ class ControlWindow(QWidget):
         self.calibrateWindow = CalibrateWindow()
         self.calibrateWindow.show()
 
+    def select_camera(self):
+        if not self.capture:
+            self.capture = QtSelectCameraCapture(0)
+            self.capture.setCloseCallback(self.captureQuitHandler)
+            self.capture.setParent(self)
+            self.capture.setWindowFlags(QtCore.Qt.Tool)
+
+        self.capture.start()
+        self.capture.show()
+
     def startCapture(self):
         if not self.capture:
-            self.capture = QtSaveContentCapture(0)
+            self.capture = QtSaveContentCapture(index=0)
             self.capture.setCloseCallback(self.captureQuitHandler)
             self.end_button.clicked.connect(self.pause_continue)
-            self.capture.setFPS(30)
             self.capture.setParent(self)
             self.capture.setWindowFlags(QtCore.Qt.Tool)
 
