@@ -305,12 +305,13 @@ class QtCalibrationCapture(QtCapture):
         self.bottom_label = QLabel()
 
         self.peopleLineEdit = QLineEdit()
+        self.peopleLineEdit.setAlignment(QtCore.Qt.AlignCenter)
 
         self.calibrate_button = self.addButton("Calibrate", self.startCalibration)
 
         self.lay.addWidget(self.peopleLineEdit, 2, 1)
-        self.lay.addWidget(self.calibrate_button, 2, 2)
-        self.lay.addWidget(self.bottom_label, 3, 1)
+        self.lay.addWidget(self.calibrate_button, 3, 1)
+        self.lay.addWidget(self.bottom_label, 4, 1)
 
     def startCalibration(self):
         self.people = int(self.peopleLineEdit.text())
