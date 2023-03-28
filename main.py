@@ -93,7 +93,6 @@ class ImageProcessor():
         x_offset = 0
         for im in images:
             new_im_x.paste(im, (x_offset, border_size))
-            # x_offset += total_width // len(images_list) + border_size
             x_offset += width + border_size
         new_im_x.paste(border_right, (x_offset, border_size))
 
