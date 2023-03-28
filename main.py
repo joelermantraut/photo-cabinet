@@ -60,6 +60,9 @@ class ImageProcessor():
             os.makedirs(MAIN_FOLDER)
 
     def save(self, images_list, filename):
+        border_right = Image.open("data/images/right-border.jpg")
+        border_bottom = Image.open("data/images/bottom-border.jpg")
+
         border_size = 10
 
         images = list()
@@ -79,26 +82,31 @@ class ImageProcessor():
 
         width, height = images[0].size
 
-        total_width = width * 3 + border_size * len(images) # Offset * 4
-        max_height = height + border_size * 2 # Offset de 10 arriba y abajo
+        total_width = width * IMAGES_PER_SESSION + border_size * (len(images) + 1)
+        max_height = height + border_size * 2
+
+        print("total_width", total_width)
+        print("max_height", max_height)
 
         new_im_x = Image.new('RGB', (total_width, max_height), (255, 255, 255))
 
-        x_offset = border_size
+        x_offset = 0
         for im in images:
-            new_im_x.paste(im, (x_offset, 10))
-            x_offset += total_width // len(images_list) + 10
+            new_im_x.paste(im, (x_offset, border_size))
+            # x_offset += total_width // len(images_list) + border_size
+            x_offset += width + border_size
+        new_im_x.paste(border_right, (x_offset, border_size))
 
         new_im_y = Image.new('RGB', (total_width, max_height * faces), (255, 255, 255))
 
-        y_offset = border_size
+        y_offset = 0
         for im in images:
             new_im_y.paste(new_im_x, (border_size, y_offset))
             y_offset += max_height + border_size
+        new_im_y.paste(border_bottom, (border_size, y_offset))
 
         new_im_y.show()
         new_im_y.save(filename)
-        # TODO: Correct borders of final image
 
 class QtCapture(QWidget):
     def __init__(self, *args, fps=30, width=840, height=680):
