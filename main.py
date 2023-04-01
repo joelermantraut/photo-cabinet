@@ -1,6 +1,7 @@
 import cv2
 import os, sys
 import argparse
+import subprocess
 import mediapipe as mp
 import math, time, copy
 
@@ -17,19 +18,32 @@ from PyQt5.QtWidgets import (
                                 QGridLayout
                             )
 
-CONFIG_FILENAME = ".config"
 IMAGES_PER_SESSION = 3
-DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+DIRECTORY = f"{os.path.expanduser('~')}/photo-cabinet"
 MAIN_FOLDER = f"{DIRECTORY}/images"
+CONFIG_FILENAME = ".config"
+CONFIG_FILEPATH = f"{DIRECTORY}/{CONFIG_FILENAME}"
 
 class ConfigManager():
     def __init__(self):
         self.config_dict = dict()
 
-        self.parse_config_file()
+        if not os.path.exists(DIRECTORY):
+            os.mkdir(DIRECTORY)
+            self.create_config_file()
+        else:
+            try:
+                self.parse_config_file()
+            except:
+                self.create_config_file()
+                self.parse_config_file()
+
+    def create_config_file(self):
+        with open(CONFIG_FILEPATH, "w") as file:
+            file.write(f"face_detection_coeff,0.8\ncamera_index,0\nimages_session,3\nconfig,'.config'\nmain_folder,''")
 
     def parse_config_file(self):
-        with open(CONFIG_FILENAME, "r") as file:
+        with open(CONFIG_FILEPATH, "r") as file:
             file_content = file.read()
         
         lines = file_content.split("\n")
@@ -56,7 +70,7 @@ class ConfigManager():
         file_content = file_content[:-1]
         # Deletes last \n to not generate other item on parsing
 
-        with open(CONFIG_FILENAME, "w") as file:
+        with open(CONFIG_FILEPATH, "w") as file:
             file.write(file_content)
 
 class ImageProcessor():
@@ -85,9 +99,6 @@ class ImageProcessor():
 
         total_width = width * IMAGES_PER_SESSION + border_size * (len(images) + 1)
         max_height = height + border_size * 2
-
-        print("total_width", total_width)
-        print("max_height", max_height)
 
         new_im_x = Image.new('RGB', (total_width, max_height), (255, 255, 255))
 
@@ -424,7 +435,7 @@ class ControlWindow(QWidget):
         self.initUI()
 
         self.setWindowTitle('Control Panel')
-        # self.showFullScreen()
+        self.showFullScreen()
         self.showMaximized()
 
     def addButton(self, text, callback=None):
@@ -451,6 +462,7 @@ class ControlWindow(QWidget):
         self.quit_button = self.addButton("End", self.endCapture)
         self.calibrate_button = self.addButton("Calibrate", self.calibrate)
         self.select_camera_button = self.addButton("Select Camera", self.select_camera)
+        self.open_explorer = self.addButton("Open Explorer", self.open_explorer)
 
         gbox = QGridLayout(self)
 
@@ -459,7 +471,8 @@ class ControlWindow(QWidget):
         gbox.addWidget(self.calibrate_button, 1, 1)
         gbox.addWidget(self.end_button, 2, 0)
         gbox.addWidget(self.quit_button, 2, 1)
-        gbox.addWidget(self.select_camera_button, 3, 1)
+        gbox.addWidget(self.select_camera_button, 3, 0)
+        gbox.addWidget(self.open_explorer, 3, 1)
 
         self.setLayout(gbox)
 
@@ -472,6 +485,10 @@ class ControlWindow(QWidget):
 
         self.capture.start()
         self.capture.show()
+
+    def open_explorer(self):
+        print(MAIN_FOLDER)
+        subprocess.Popen(f"explorer /select,{MAIN_FOLDER}")
 
     def select_camera(self):
         if not self.capture:
@@ -518,14 +535,13 @@ class ControlWindow(QWidget):
         self.close()
 
     def closeEvent(self, event):
-        # reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to close the window?',
-        #         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to close the window?',
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
-        # if reply == QMessageBox.Yes:
-        #     event.accept()
-        # else:
-        #     event.ignore()
-        event.accept()
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
 class ArgParsing():
     def __init__(self):
@@ -542,17 +558,22 @@ class ArgParsing():
         return vars(self.ap.parse_args())
 
 def main():
-    global CONFIG_FILENAME, MAIN_FOLDER, IMAGES_PER_SESSION
+    global CONFIG_FILENAME, CONFIG_FILEPATH, MAIN_FOLDER, IMAGES_PER_SESSION
 
     argparsing = ArgParsing()
     args = argparsing.get()
 
     if args["config"]:
         CONFIG_FILENAME = args["config"]
+        CONFIG_FILEPATH = f"{DIRECTORY}/{CONFIG_FILENAME}"
     if args["main"]:
         MAIN_FOLDER = args["main"]
     if args["images"]:
         IMAGES_PER_SESSION = args["images"]
+
+    configActions = ConfigManager()
+    configActions.save()
+    # Saves changes
 
     app = QApplication(sys.argv)
     control_window = ControlWindow()
