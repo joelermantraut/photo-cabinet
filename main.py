@@ -1,9 +1,8 @@
 import cv2
 import os, sys
 import argparse
-import subprocess
 import mediapipe as mp
-import math, time, copy
+import math, copy
 
 from PIL import Image
 from PyQt5.Qt import Qt
@@ -106,7 +105,6 @@ class ImageProcessor():
         for im in images:
             new_im_x.paste(im, (x_offset, border_size))
             x_offset += width + border_size
-        new_im_x.paste(border_right, (x_offset, border_size))
 
         new_im_y = Image.new('RGB', (total_width, max_height * faces), (255, 255, 255))
 
@@ -114,10 +112,10 @@ class ImageProcessor():
         for im in images:
             new_im_y.paste(new_im_x, (border_size, y_offset))
             y_offset += max_height + border_size
-        new_im_y.paste(border_bottom, (border_size, y_offset))
 
-        new_im_y.show()
         new_im_y.save(filename)
+        os.system(f"start {filename}")
+        # Open photo in file system
 
 class QtCapture(QWidget):
     def __init__(self, *args, fps=30, width=840, height=680):
@@ -177,7 +175,7 @@ class QtCapture(QWidget):
         self.video_frame.setPixmap(pix)
 
     def nextFrameSlot(self):
-        ret, frame = self.cap.read()
+        _, frame = self.cap.read()
         # OpenCV yields frames in BGR format
         try:
             self.frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -425,6 +423,8 @@ class QtSelectCameraCapture(QtCapture):
         configActions.set("camera_index", str(self.current_camera))
         configActions.save()
 
+        self.close()
+
 class ControlWindow(QWidget):
     def __init__(self):
         QWidget.__init__(self)
@@ -487,8 +487,7 @@ class ControlWindow(QWidget):
         self.capture.show()
 
     def open_explorer(self):
-        print(MAIN_FOLDER)
-        subprocess.Popen(f"explorer /select,{MAIN_FOLDER}")
+        os.system(f"start {MAIN_FOLDER}")
 
     def select_camera(self):
         if not self.capture:
