@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
                                 QLabel, QApplication,
                                 QMessageBox, QLineEdit,
                                 QSizePolicy, QVBoxLayout,
-                                QGridLayout
+                                QGridLayout, QFileDialog
                             )
 
 IMAGES_PER_SESSION = 3
@@ -58,6 +58,7 @@ class ConfigManager():
             value = self.config_dict[param]
         else:
             value = 0
+            # Its useful to set 0 to default values
 
         return value
 
@@ -73,15 +74,46 @@ class ConfigManager():
             file.write(file_content)
 
 class ImageProcessor():
-    def __init__(self, images_session):
-        self.IMAGES_SESSION = images_session
-
+    def __init__(self):
         if not os.path.exists(MAIN_FOLDER):
             os.makedirs(MAIN_FOLDER)
 
-    def save(self, images_list, filename):
-        border_size = 10
+        configActions = ConfigManager()
+        stamp_filepath = configActions.get("stamp_filepath")
 
+        self.border_size = 10
+        self.stamp_filepath = stamp_filepath
+
+    def set_stamp(self, new_image, images_size):
+        stamp_image = Image.open(open(self.stamp_filepath, "rb"))
+        stamp_image = stamp_image.resize(images_size)
+        new_image.paste(stamp_image, (self.border_size, self.border_size))
+        # Adds stamp on top of image
+
+        return new_image
+
+    def append_horizontally(self, images, width, total_width, max_height):
+        new_im_x = Image.new('RGB', (total_width, max_height), (255, 255, 255))
+
+        x_offset = width
+        for im in images:
+            new_im_x.paste(im, (x_offset, self.border_size))
+            x_offset += width + self.border_size
+
+        return new_im_x
+
+    def append_vertically(self, image, total_width, max_height, faces):
+        total_height = max_height * faces + self.border_size * 2
+        new_im_y = Image.new('RGB', (total_width, total_height), (255, 255, 255))
+
+        y_offset = 0
+        for _ in range(faces):
+            new_im_y.paste(image, (self.border_size, y_offset))
+            y_offset += max_height + self.border_size
+
+        return new_im_y
+
+    def save(self, images_list, filename):
         images = list()
         faces = list()
 
@@ -94,24 +126,18 @@ class ImageProcessor():
         faces = max(faces)
         # Total faces in 1 image
 
-        width, height = images[0].size
+        images_size = images[0].size
+        width, height = images_size
 
-        total_width = width * IMAGES_PER_SESSION + border_size * (len(images) + 1)
-        max_height = height + border_size * 2
+        total_width = width * (len(images_list) + 1) + self.border_size * (len(images) + 1)
+        max_height = height + self.border_size * 2
 
-        new_im_x = Image.new('RGB', (total_width, max_height), (255, 255, 255))
+        new_im_x = self.append_horizontally(images, width, total_width, max_height)
 
-        x_offset = 0
-        for im in images:
-            new_im_x.paste(im, (x_offset, border_size))
-            x_offset += width + border_size
+        new_image_with_stamp = self.set_stamp(new_im_x, images_size)
+        # Add stamp to photo array
 
-        new_im_y = Image.new('RGB', (total_width, max_height * faces), (255, 255, 255))
-
-        y_offset = 0
-        for im in images:
-            new_im_y.paste(new_im_x, (border_size, y_offset))
-            y_offset += max_height + border_size
+        new_im_y = self.append_vertically(new_image_with_stamp, total_width, max_height, faces)
 
         new_im_y.save(filename)
         os.system(f"start {filename}")
@@ -228,7 +254,7 @@ class QtSaveContentCapture(QtCapture):
         self.cur_timer = 0
         self.timer_working = False
 
-        self.imageProcessor = ImageProcessor(self.IMAGES_SESSION)
+        self.imageProcessor = ImageProcessor()
 
         self.setWindowTitle('Capture Window')
 
@@ -429,7 +455,6 @@ class ControlWindow(QWidget):
     def __init__(self):
         QWidget.__init__(self)
         self.capture = None
-        self.pause = False
         self.calibrateWindow = None
 
         self.initUI()
@@ -458,23 +483,22 @@ class ControlWindow(QWidget):
         self.title = self.addLabel("Photo Cabinet", 25)
 
         self.start_button = self.addButton("Start", self.startCapture)
-        self.end_button = self.addButton("Pause/Continue")
-        self.quit_button = self.addButton("End", self.endCapture)
         self.calibrate_button = self.addButton("Calibrate", self.calibrate)
         self.select_camera_button = self.addButton("Select Camera", self.select_camera)
+        self.add_stamp_button = self.addButton("Add Stamp", self.add_stamp)
         self.open_explorer = self.addButton("Open Explorer", self.open_explorer)
+        self.quit_button = self.addButton("End", self.endCapture)
 
         gbox = QGridLayout(self)
+        self.setLayout(gbox)
 
         gbox.addWidget(self.title, 0, 0)
         gbox.addWidget(self.start_button, 1, 0)
         gbox.addWidget(self.calibrate_button, 1, 1)
-        gbox.addWidget(self.end_button, 2, 0)
-        gbox.addWidget(self.quit_button, 2, 1)
-        gbox.addWidget(self.select_camera_button, 3, 0)
-        gbox.addWidget(self.open_explorer, 3, 1)
-
-        self.setLayout(gbox)
+        gbox.addWidget(self.select_camera_button, 2, 0)
+        gbox.addWidget(self.add_stamp_button, 2, 1)
+        gbox.addWidget(self.open_explorer, 3, 0)
+        gbox.addWidget(self.quit_button, 3, 1)
 
     def calibrate(self):
         if not self.capture:
@@ -499,27 +523,25 @@ class ControlWindow(QWidget):
         self.capture.start()
         self.capture.show()
 
+    def add_stamp(self):
+        fname = QFileDialog.getOpenFileName(self, 'Open file', 
+           'c:\\',"Image files (*.jpg *.png *.jpeg)")
+
+        selected_filepath = fname[0]
+
+        configActions = ConfigManager()
+        configActions.set("stamp_filepath", str(selected_filepath))
+        configActions.save()
+
     def startCapture(self):
         if not self.capture:
             self.capture = QtSaveContentCapture()
             self.capture.setCloseCallback(self.captureQuitHandler)
-            self.end_button.clicked.connect(self.pause_continue)
             self.capture.setParent(self)
             self.capture.setWindowFlags(QtCore.Qt.Tool)
 
         self.capture.start()
         self.capture.show()
-
-    def pause_continue(self):
-        if self.capture and self.pause:
-            self.capture.start()
-        elif self.capture and not self.pause:
-            self.capture.stop()
-        else:
-            return
-            # Capture not created
-
-        self.pause = not self.pause
 
     def endCapture(self):
         if self.capture:
@@ -579,4 +601,5 @@ def main():
 
     sys.exit(app.exec_())
 
-main()
+if __name__ == "__main__":
+    main()
