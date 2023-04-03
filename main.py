@@ -80,9 +80,11 @@ class ImageProcessor():
 
         configActions = ConfigManager()
         stamp_filepath = configActions.get("stamp_filepath")
+        filter_filepath = configActions.get("filter_filepath")
 
         self.border_size = 10
         self.stamp_filepath = stamp_filepath
+        self.filter_filepath = filter_filepath
 
     def set_stamp(self, new_image, images_size):
         stamp_image = Image.open(open(self.stamp_filepath, "rb"))
@@ -91,6 +93,13 @@ class ImageProcessor():
         # Adds stamp on top of image
 
         return new_image
+
+    def apply_filter(self, image):
+        filter_image = Image.open(self.filter_filepath)
+        filter_image = filter_image.resize(image.size)
+        image.paste(filter_image, (0, 0), filter_image)
+
+        return image
 
     def append_horizontally(self, images, width, total_width, max_height):
         new_im_x = Image.new('RGB', (total_width, max_height), (255, 255, 255))
@@ -120,6 +129,11 @@ class ImageProcessor():
         for item in images_list:
             image, face = item
             image = Image.fromarray(image)
+
+            if os.path.exists(self.filter_filepath):
+                image = self.apply_filter(image)
+                # Applies filter
+
             images.append(image)
             faces.append(face)
 
@@ -134,8 +148,9 @@ class ImageProcessor():
 
         new_im_x = self.append_horizontally(images, width, total_width, max_height)
 
-        new_image_with_stamp = self.set_stamp(new_im_x, images_size)
-        # Add stamp to photo array
+        if os.path.exists(self.stamp_filepath):
+            new_image_with_stamp = self.set_stamp(new_im_x, images_size)
+            # Add stamp to photo array
 
         new_im_y = self.append_vertically(new_image_with_stamp, total_width, max_height, faces)
 
@@ -529,8 +544,18 @@ class ControlWindow(QWidget):
 
         selected_filepath = fname[0]
 
+        if len(selected_filepath) == 0:
+            return
+
         configActions = ConfigManager()
-        configActions.set("stamp_filepath", str(selected_filepath))
+
+        reply = QMessageBox.question(self, 'Stamp or Filter?', 'Is this a stamp (Yes) or a filter (No)?',
+        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            configActions.set("stamp_filepath", str(selected_filepath))
+        else:
+            configActions.set("filter_filepath", str(selected_filepath))
+
         configActions.save()
 
     def startCapture(self):
