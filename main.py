@@ -23,6 +23,11 @@ MAIN_FOLDER = f"{DIRECTORY}/images"
 CONFIG_FILENAME = ".config"
 CONFIG_FILEPATH = f"{DIRECTORY}/{CONFIG_FILENAME}"
 
+# TODO: Create a way to restore default config, or delete filter
+# filepath and/or stamp filepath.
+
+# TODO: Divide file in multiple files.
+
 class ConfigManager():
     def __init__(self):
         self.config_dict = dict()
@@ -549,7 +554,7 @@ class ControlWindow(QWidget):
 
     def add_stamp(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', 
-           'c:\\',"Image files (*.jpg *.png *.jpeg)")
+           DIRECTORY,"Image files (*.jpg *.png *.jpeg)")
 
         selected_filepath = fname[0]
 
