@@ -38,8 +38,17 @@ class ConfigManager():
                 self.parse_config_file()
 
     def create_config_file(self):
-        with open(CONFIG_FILEPATH, "w") as file:
-            file.write(f"face_detection_coeff,0.8\ncamera_index,0\nimages_session,3\nconfig,'.config'\nmain_folder,''")
+        self.config_dict = {
+            "face_detection_coeff": "0.8",
+            "camera_index": "0",
+            "images_session": "3",
+            "config": ".config",
+            "main_folder": "",
+            "stamp_filepath": "",
+            "filter_filepath": ""
+        }
+
+        self.save()
 
     def parse_config_file(self):
         with open(CONFIG_FILEPATH, "r") as file:
