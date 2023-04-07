@@ -25,8 +25,6 @@ CONFIG_FILEPATH = f"{DIRECTORY}/{CONFIG_FILENAME}"
 
 # TODO: Divide file in multiple files.
 
-# TODO: Delete or not create x offset when there is no stamp
-
 class ConfigManager():
     def __init__(self):
         self.config_dict = dict()
@@ -105,14 +103,6 @@ class ImageProcessor():
         self.stamp_filepath = stamp_filepath
         self.filter_filepath = filter_filepath
 
-    def set_stamp(self, new_image, images_size):
-        stamp_image = Image.open(open(self.stamp_filepath, "rb"))
-        stamp_image = stamp_image.resize(images_size)
-        new_image.paste(stamp_image, (self.border_size, self.border_size))
-        # Adds stamp on top of image
-
-        return new_image
-
     def apply_filter(self, image):
         filter_image = Image.open(self.filter_filepath)
         filter_image = filter_image.resize(image.size)
@@ -123,7 +113,7 @@ class ImageProcessor():
     def append_horizontally(self, images, width, total_width, max_height):
         new_im_x = Image.new('RGB', (total_width, max_height), (255, 255, 255))
 
-        x_offset = width
+        x_offset = 0
         for im in images:
             new_im_x.paste(im, (x_offset, self.border_size))
             x_offset += width + self.border_size
@@ -131,7 +121,7 @@ class ImageProcessor():
         return new_im_x
 
     def append_vertically(self, image, total_width, max_height, faces):
-        total_height = max_height * faces + self.border_size * 2
+        total_height = max_height * faces + self.border_size * (faces - 1)
         new_im_y = Image.new('RGB', (total_width, total_height), (255, 255, 255))
 
         y_offset = 0
@@ -149,7 +139,7 @@ class ImageProcessor():
             image, face = item
             image = Image.fromarray(image)
 
-            if os.path.exists(self.filter_filepath):
+            if len(self.filter_filepath) and os.path.exists(self.filter_filepath):
                 image = self.apply_filter(image)
                 # Applies filter
             else:
@@ -158,22 +148,22 @@ class ImageProcessor():
             images.append(image)
             faces.append(face)
 
-        faces = max(faces)
-        # Total faces in 1 image
+        faces = max(set(faces), key=faces.count) or 1
+        # Gets most common case on faces list, minimum 1
 
         images_size = images[0].size
         width, height = images_size
 
-        total_width = width * (len(images_list) + 1) + self.border_size * (len(images) + 1)
+        if len(self.stamp_filepath) and os.path.exists(self.stamp_filepath):
+            stamp_image = Image.open(open(self.stamp_filepath, "rb"))
+            stamp_image = stamp_image.resize((stamp_image.size[0], images_size[1]))
+            images.insert(0, stamp_image)
+        # Adds stamp resized to common images size
+
+        total_width = width * len(images) + self.border_size * len(images)
         max_height = height + self.border_size * 2
 
         new_im_x = self.append_horizontally(images, width, total_width, max_height)
-
-        if os.path.exists(self.stamp_filepath):
-            new_im_x = self.set_stamp(new_im_x, images_size)
-            # Add stamp to photo array
-        else:
-            print("Stamp filepath not exists or not assigned.")
 
         new_im_y = self.append_vertically(new_im_x, total_width, max_height, faces)
 
