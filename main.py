@@ -367,15 +367,17 @@ class QtCalibrationCapture(QtCapture):
         super().initUI()
 
         self.bottom_label = QLabel()
+        self.placeholder_label = QLabel("Numero de personas en la imagen:")
 
         self.peopleLineEdit = QLineEdit()
         self.peopleLineEdit.setAlignment(QtCore.Qt.AlignCenter)
 
         self.calibrate_button = self.addButton("Calibrar", self.startCalibration)
 
-        self.lay.addWidget(self.peopleLineEdit, 2, 1)
-        self.lay.addWidget(self.calibrate_button, 3, 1)
-        self.lay.addWidget(self.bottom_label, 4, 1)
+        self.lay.addWidget(self.placeholder_label, 2, 1)
+        self.lay.addWidget(self.peopleLineEdit, 3, 1)
+        self.lay.addWidget(self.calibrate_button, 4, 1)
+        self.lay.addWidget(self.bottom_label, 5, 1)
 
     def startCalibration(self):
         self.people = int(self.peopleLineEdit.text())
