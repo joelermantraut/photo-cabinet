@@ -13,8 +13,8 @@ from PyQt5.QtWidgets import (
                                 QWidget, QPushButton,
                                 QLabel, QApplication,
                                 QMessageBox, QLineEdit,
-                                QSizePolicy, QVBoxLayout,
-                                QGridLayout, QFileDialog
+                                QGridLayout, QFileDialog,
+                                QSizePolicy
                             )
 
 IMAGES_PER_SESSION = 3
@@ -143,7 +143,8 @@ class ImageProcessor():
                 image = self.apply_filter(image)
                 # Applies filter
             else:
-                print("Filter filepath not exists or not assigned")
+                # print("Filter filepath not exists or not assigned")
+                print("Archivo de filtro no existo o no fue seleccionado")
 
             images.append(image)
             faces.append(face)
@@ -263,10 +264,10 @@ class QtCapture(QWidget):
 class QtSaveContentCapture(QtCapture):
     def __init__(self, *args):
         self.phrases_list = [
-            "Press SPACE to start...",
-            "Another photo?",
-            "Last one!!",
-            "Ready!! Press SPACE again to restart..."
+            "Presiona ESPACIO para comenzar...",
+            "Otra foto?",
+            "Ultima!!!",
+            "Listo!!! Presiona ESPACIO para comenzar nuevamente..."
         ]
         # Needs to be before because initUI uses it
         # and it is called in QtCapture.__init__
@@ -284,7 +285,7 @@ class QtSaveContentCapture(QtCapture):
 
         self.imageProcessor = ImageProcessor()
 
-        self.setWindowTitle('Capture Window')
+        self.setWindowTitle('Ventana de Captura')
 
     def addLabel(self, text, fontSized):
         label = QLabel(text)
@@ -370,7 +371,7 @@ class QtCalibrationCapture(QtCapture):
         self.peopleLineEdit = QLineEdit()
         self.peopleLineEdit.setAlignment(QtCore.Qt.AlignCenter)
 
-        self.calibrate_button = self.addButton("Calibrate", self.startCalibration)
+        self.calibrate_button = self.addButton("Calibrar", self.startCalibration)
 
         self.lay.addWidget(self.peopleLineEdit, 2, 1)
         self.lay.addWidget(self.calibrate_button, 3, 1)
@@ -380,7 +381,7 @@ class QtCalibrationCapture(QtCapture):
         self.people = int(self.peopleLineEdit.text())
         if self.people != 0:
             self.calibrating = True
-            self.bottom_label.setText("Calibrating... Please wait")
+            self.bottom_label.setText("Calibrando... Por favor, espera")
 
     def setCalibrateParam(self, people):
         self.people = people
@@ -456,8 +457,8 @@ class QtSelectCameraCapture(QtCapture):
     def initUI(self):
         super().initUI()
 
-        self.change_camera_button = self.addButton("Next Camera", self.next_camera)
-        self.save_and_exit_button = self.addButton("Save and exit", self.save_and_exit)
+        self.change_camera_button = self.addButton("Siguiente cámara", self.next_camera)
+        self.save_and_exit_button = self.addButton("Guardar y salir", self.save_and_exit)
         self.lay.addWidget(self.change_camera_button, 2, 1)
         self.lay.addWidget(self.save_and_exit_button, 3, 1)
 
@@ -488,7 +489,7 @@ class ConfigWindow(QWidget):
 
         self.label_font_size = 11
 
-        self.setWindowTitle('Settings')
+        self.setWindowTitle('Configuración')
         self.initUI()
 
     def addLineEdit(self, text=None):
@@ -517,25 +518,25 @@ class ConfigWindow(QWidget):
         return label
 
     def initUI(self):
-        images_per_session_label = self.addLabel("Images per session", self.label_font_size)
+        images_per_session_label = self.addLabel("Imágenes por sesión", self.label_font_size)
         self.images_session_entry = self.addLineEdit(self.all_config["images_session"])
 
         self.config_dir_label = self.addLabel(self.all_config["config"], self.label_font_size)
-        change_dir_button = self.addButton("Change dir", self.change_dir_config)
+        change_dir_button = self.addButton("Cambiar directorio", self.change_dir_config)
 
         self.main_folder_label = self.addLabel(self.all_config["main_folder"], self.label_font_size)
-        main_folder_button = self.addButton("Change dir", self.change_dir_main_folder)
+        main_folder_button = self.addButton("Cambiar directorio", self.change_dir_main_folder)
 
         self.stamp_filepath_label = self.addLabel(self.all_config["stamp_filepath"] or "Stamp file path", self.label_font_size)
-        stamp_filepath_change_button = self.addButton("Change dir", self.change_dir_stamp)
-        stamp_filepath_clear_button = self.addButton("Clear Stamp", self.clear_stamp)
+        stamp_filepath_change_button = self.addButton("Cambiar directorio", self.change_dir_stamp)
+        stamp_filepath_clear_button = self.addButton("Borrar etiqueta", self.clear_stamp)
 
         self.filter_filepath_label = self.addLabel(self.all_config["filter_filepath"] or "Filter file path", self.label_font_size)
-        filter_filepath_change_button = self.addButton("Change dir", self.change_dir_filter)
-        filter_filepath_clear_button = self.addButton("Clear Stamp", self.clear_filter)
+        filter_filepath_change_button = self.addButton("Cambiar directorio", self.change_dir_filter)
+        filter_filepath_clear_button = self.addButton("Borrar filtro", self.clear_filter)
 
-        save_button = self.addButton("Save all", self.save_all)
-        cancel_button = self.addButton("Cancel", self.close)
+        save_button = self.addButton("Guardar todo", self.save_all)
+        cancel_button = self.addButton("Cancelar", self.close)
 
         gbox = QGridLayout(self)
         self.setLayout(gbox)
@@ -556,7 +557,7 @@ class ConfigWindow(QWidget):
         gbox.addWidget(cancel_button, 5, 2)
 
     def change_dir_config(self):
-        fname = QFileDialog.getOpenFileName(self, 'Select file', 
+        fname = QFileDialog.getOpenFileName(self, 'Seleccionar archivo', 
            DIRECTORY)
 
         selected_filepath = fname[0]
@@ -568,7 +569,7 @@ class ConfigWindow(QWidget):
         self.config_dir_label.setText(selected_filepath)
 
     def change_dir_main_folder(self):
-        directory = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+        directory = str(QFileDialog.getExistingDirectory(self, "Seleccionar directorio"))
 
         if len(directory) == 0:
             return
@@ -576,7 +577,7 @@ class ConfigWindow(QWidget):
         self.all_config["main_folder"] = directory
 
     def change_dir_stamp(self):
-        fname = QFileDialog.getOpenFileName(self, 'Select file', 
+        fname = QFileDialog.getOpenFileName(self, 'Seleccionar archivo', 
            DIRECTORY, "Image files (*.jpg *.png *.jpeg)")
 
         selected_filepath = fname[0]
@@ -588,7 +589,7 @@ class ConfigWindow(QWidget):
         self.stamp_filepath_label.setText(selected_filepath)
 
     def change_dir_filter(self):
-        fname = QFileDialog.getOpenFileName(self, 'Select file', 
+        fname = QFileDialog.getOpenFileName(self, 'Seleccionar archivo', 
            DIRECTORY, "Image files (*.jpg *.png *.jpeg)")
 
         selected_filepath = fname[0]
@@ -602,11 +603,11 @@ class ConfigWindow(QWidget):
     def clear_stamp(self):
         self.all_config["stamp_filepath"] = ""
 
-        self.stamp_filepath_label.setText("Stamp file path")
+        self.stamp_filepath_label.setText("Directorio de etiqueta")
 
     def clear_filter(self):
         self.all_config["filter_filepath"] = ""
-        self.filter_filepath_label.setText("Filter file path")
+        self.filter_filepath_label.setText("Directorio de filtro")
 
     def save_all(self):
         images_per_session = self.images_session_entry.text()
@@ -626,7 +627,7 @@ class ControlWindow(QWidget):
 
         self.initUI()
 
-        self.setWindowTitle('Control Panel')
+        self.setWindowTitle('Panel de Control')
         self.showFullScreen()
         self.showMaximized()
 
@@ -647,14 +648,14 @@ class ControlWindow(QWidget):
         return label
 
     def initUI(self):
-        self.title = self.addLabel("Photo Cabinet", 25)
+        self.title = self.addLabel("Cabina de fotos", 25)
 
-        self.start_button = self.addButton("Start", self.startCapture)
-        self.calibrate_button = self.addButton("Calibrate", self.calibrate)
-        self.select_camera_button = self.addButton("Select Camera", self.select_camera)
-        self.open_config_button = self.addButton("Open Config", self.open_config)
-        self.open_explorer_button = self.addButton("Open Explorer", self.open_explorer)
-        self.quit_button = self.addButton("End", self.endCapture)
+        self.start_button = self.addButton("Comenzar", self.startCapture)
+        self.calibrate_button = self.addButton("Calibrar", self.calibrate)
+        self.select_camera_button = self.addButton("Seleccionar cámara", self.select_camera)
+        self.open_config_button = self.addButton("Abrir configuración", self.open_config)
+        self.open_explorer_button = self.addButton("Abrir carpeta de imágenes", self.open_explorer)
+        self.quit_button = self.addButton("Salir", self.endCapture)
 
         gbox = QGridLayout(self)
         self.setLayout(gbox)
@@ -717,7 +718,7 @@ class ControlWindow(QWidget):
         self.close()
 
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to close the window?',
+        reply = QMessageBox.question(self, 'Cerrar programa', 'Está seguro que quiere salir?',
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
