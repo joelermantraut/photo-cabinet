@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
                                 QGridLayout, QFileDialog,
                                 QSizePolicy
                             )
+from PyQt5.QtGui import QPixmap
 
 IMAGES_PER_SESSION = 3
 DIRECTORY = f"{os.path.expanduser('~')}/photo-cabinet"
@@ -650,7 +651,11 @@ class ControlWindow(QWidget):
         return label
 
     def initUI(self):
-        self.title = self.addLabel("Cabina de fotos", 25)
+        self.icon = self.addLabel("", 25)
+        pixmap = QPixmap('icono.png')
+        self.icon.setPixmap(pixmap)
+
+        self.title = self.addLabel("Centro Ágape Cristiano", 25)
 
         self.start_button = self.addButton("Comenzar", self.startCapture)
         self.calibrate_button = self.addButton("Calibrar", self.calibrate)
@@ -662,7 +667,8 @@ class ControlWindow(QWidget):
         gbox = QGridLayout(self)
         self.setLayout(gbox)
 
-        gbox.addWidget(self.title, 0, 0)
+        gbox.addWidget(self.icon, 0, 0)
+        gbox.addWidget(self.title, 0, 1)
         gbox.addWidget(self.start_button, 1, 0)
         gbox.addWidget(self.calibrate_button, 1, 1)
         gbox.addWidget(self.select_camera_button, 2, 0)
