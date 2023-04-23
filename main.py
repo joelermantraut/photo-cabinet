@@ -366,15 +366,17 @@ class QtCalibrationCapture(QtCapture):
         super().initUI()
 
         self.bottom_label = QLabel()
+        self.placeholder_label = QLabel("Number of people on image:")
 
         self.peopleLineEdit = QLineEdit()
         self.peopleLineEdit.setAlignment(QtCore.Qt.AlignCenter)
 
         self.calibrate_button = self.addButton("Calibrate", self.startCalibration)
 
-        self.lay.addWidget(self.peopleLineEdit, 2, 1)
-        self.lay.addWidget(self.calibrate_button, 3, 1)
-        self.lay.addWidget(self.bottom_label, 4, 1)
+        self.lay.addWidget(self.placeholder_label, 2, 1)
+        self.lay.addWidget(self.peopleLineEdit, 3, 1)
+        self.lay.addWidget(self.calibrate_button, 4, 1)
+        self.lay.addWidget(self.bottom_label, 5, 1)
 
     def startCalibration(self):
         self.people = int(self.peopleLineEdit.text())
@@ -532,7 +534,7 @@ class ConfigWindow(QWidget):
 
         self.filter_filepath_label = self.addLabel(self.all_config["filter_filepath"] or "Filter file path", self.label_font_size)
         filter_filepath_change_button = self.addButton("Change dir", self.change_dir_filter)
-        filter_filepath_clear_button = self.addButton("Clear Stamp", self.clear_filter)
+        filter_filepath_clear_button = self.addButton("Clear Filter", self.clear_filter)
 
         save_button = self.addButton("Save all", self.save_all)
         cancel_button = self.addButton("Cancel", self.close)
