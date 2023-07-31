@@ -790,12 +790,16 @@ class ArgParsing():
         self.ap.add_argument("-c", "--config", required=False, help="Sets config file name and path")
         self.ap.add_argument("-m", "--main", required=False, help="Sets images folder path")
         self.ap.add_argument("-i", "--images", required=False, help="Sets number of images per session")
+        self.ap.add_argument("-s", "--save-filename", required=False, help="Sets filename of pdf save file")
+        self.ap.add_argument("-x", "--res-x", required=False, help="Sets resoluition x parameter")
+        self.ap.add_argument("-y", "--res-y", required=False, help="Sets resolution y parameter")
 
     def get(self):
         return vars(self.ap.parse_args())
 
 def main():
-    global CONFIG_FILENAME, CONFIG_FILEPATH, MAIN_FOLDER, IMAGES_PER_SESSION
+    global CONFIG_FILENAME, CONFIG_FILEPATH, MAIN_FOLDER, IMAGES_PER_SESSION, \
+            FILE_SAVE_NAME, RESOLUTION_X, RESOLUTION_Y
 
     argparsing = ArgParsing()
     args = argparsing.get()
@@ -807,6 +811,12 @@ def main():
         MAIN_FOLDER = args["main"]
     if args["images"]:
         IMAGES_PER_SESSION = args["images"]
+    if args["save_filename"]:
+        FILE_SAVE_NAME = args["save_filename"]
+    if args["res_x"]:
+        RESOLUTION_X = args["res_x"]
+    if args["res_y"]:
+        RESOLUTION_Y = args["res_y"]
 
     configActions = ConfigManager()
     configActions.save()
