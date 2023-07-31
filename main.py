@@ -3,6 +3,7 @@ import os, sys
 import argparse
 import mediapipe as mp
 import math, copy
+from fpdf import FPDF
 
 from PIL import Image
 from PyQt5.Qt import Qt
@@ -25,6 +26,9 @@ CONFIG_FILENAME = ".config"
 CONFIG_FILEPATH = f"{DIRECTORY}/{CONFIG_FILENAME}"
 RESOLUTION_X = 1366
 RESOLUTION_Y = 768
+A4_SIZE = {"width": 210, "height": 297}
+PT_MM_RELATION = 0.35
+FILE_SAVE_NAME = "imprimir_fotos"
 
 # TODO: Divide file in multiple files.
 
@@ -153,7 +157,9 @@ class ImageProcessor():
             faces.append(face)
 
         faces = max(set(faces), key=faces.count) or 1
+        faces = 6 if faces > 6 else faces
         # Gets most common case on faces list, minimum 1
+        # maximum 6
 
         images_size = images[0].size
         width, height = images_size
@@ -186,6 +192,7 @@ class QtCapture(QWidget):
             args = (capture_index, )
 
         self.cap = cv2.VideoCapture(*args, cv2.CAP_DSHOW)
+        # https://stackoverflow.com/questions/19448078/python-opencv-access-webcam-maximum-resolution
 
         self.fps = fps
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
@@ -665,6 +672,7 @@ class ControlWindow(QWidget):
         self.select_camera_button = self.addButton("Seleccionar cámara", self.select_camera)
         self.open_config_button = self.addButton("Abrir configuración", self.open_config)
         self.open_explorer_button = self.addButton("Abrir carpeta de imágenes", self.open_explorer)
+        self.prepare_to_print_button = self.addButton("Preparar para imprimir", self.prepare_to_print)
         self.quit_button = self.addButton("Salir", self.endCapture)
 
         gbox = QGridLayout(self)
@@ -677,7 +685,8 @@ class ControlWindow(QWidget):
         gbox.addWidget(self.select_camera_button, 2, 0)
         gbox.addWidget(self.open_config_button, 2, 1)
         gbox.addWidget(self.open_explorer_button, 3, 0)
-        gbox.addWidget(self.quit_button, 3, 1)
+        gbox.addWidget(self.prepare_to_print_button, 3, 1)
+        gbox.addWidget(self.quit_button, 4, 1)
 
     def calibrate(self):
         if not self.capture:
@@ -692,6 +701,44 @@ class ControlWindow(QWidget):
     def open_explorer(self):
         os.system(f"start {MAIN_FOLDER}")
 
+    def prepare_to_print(self):
+        fnames = QFileDialog.getOpenFileNames(self, 'Seleccionar archivo', 
+           MAIN_FOLDER, "Image files (*.jpg *.png *.jpeg)")
+
+        folder_name = QFileDialog.getExistingDirectory(self, 'Seleccionar directorio')
+        # Files to print and folder to save PDF
+
+        if len(fnames[0]) == 2 or len(folder_name) == 0:
+            return
+        # Case of cancelled selection
+
+        files_to_print = fnames[0]
+
+        pdf_path = f"{folder_name}/{FILE_SAVE_NAME}.pdf"
+
+        pdf = FPDF("P", "pt")
+        pdf.add_page()
+
+        actual_height = 0
+        for image in files_to_print:
+            PILImage = Image.open(image)
+            width, height = PILImage.size
+            real_height = height * (A4_SIZE["width"] / PT_MM_RELATION) / width
+            if (actual_height + real_height) > A4_SIZE["height"] / PT_MM_RELATION:
+                pdf.add_page()
+                actual_height = 0
+
+            pdf.image(image, 0, actual_height, A4_SIZE["width"] / PT_MM_RELATION)
+            actual_height += real_height + 10
+
+        pdf.output(pdf_path, "F")
+
+        # https://stackoverflow.com/questions/27327513/create-pdf-from-a-list-of-images
+        
+    def open_config(self):
+        self.configWindow = ConfigWindow()
+        self.configWindow.show()
+
     def select_camera(self):
         if not self.capture:
             self.capture = QtSelectCameraCapture()
@@ -701,10 +748,6 @@ class ControlWindow(QWidget):
 
         self.capture.start()
         self.capture.show()
-
-    def open_config(self):
-        self.configWindow = ConfigWindow()
-        self.configWindow.show()
 
     def startCapture(self):
         if not self.capture:
