@@ -23,6 +23,8 @@ DIRECTORY = f"{os.path.expanduser('~')}/photo-cabinet"
 MAIN_FOLDER = f"{DIRECTORY}/images"
 CONFIG_FILENAME = ".config"
 CONFIG_FILEPATH = f"{DIRECTORY}/{CONFIG_FILENAME}"
+RESOLUTION_X = 1366
+RESOLUTION_Y = 768
 
 # TODO: Divide file in multiple files.
 
@@ -174,22 +176,23 @@ class ImageProcessor():
         # Open photo in file system
 
 class QtCapture(QWidget):
-    def __init__(self, *args, fps=30, width=840, height=680):
+    def __init__(self, *args, fps=30, width=RESOLUTION_X, height=RESOLUTION_Y):
         super(QWidget, self).__init__()
 
         if len(args) == 0:
             configActions = ConfigManager()
             capture_index = int(configActions.get("camera_index"))
 
-            args = (capture_index,)
+            args = (capture_index, )
 
-        self.cap = cv2.VideoCapture(*args)
+        self.cap = cv2.VideoCapture(*args, cv2.CAP_DSHOW)
 
         self.fps = fps
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
         self.cap.set(cv2.CAP_PROP_FPS, self.fps)
+        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 
         self.frame = None
         self.close_callback = None
@@ -530,11 +533,11 @@ class ConfigWindow(QWidget):
         self.main_folder_label = self.addLabel(self.all_config["main_folder"], self.label_font_size)
         main_folder_button = self.addButton("Cambiar directorio", self.change_dir_main_folder)
 
-        self.stamp_filepath_label = self.addLabel(self.all_config["stamp_filepath"] or "Stamp file path", self.label_font_size)
+        self.stamp_filepath_label = self.addLabel(self.all_config["stamp_filepath"] or "Directorio estampa", self.label_font_size)
         stamp_filepath_change_button = self.addButton("Cambiar directorio", self.change_dir_stamp)
-        stamp_filepath_clear_button = self.addButton("Borrar etiqueta", self.clear_stamp)
+        stamp_filepath_clear_button = self.addButton("Borrar estampa", self.clear_stamp)
 
-        self.filter_filepath_label = self.addLabel(self.all_config["filter_filepath"] or "Filter file path", self.label_font_size)
+        self.filter_filepath_label = self.addLabel(self.all_config["filter_filepath"] or "Directorio filtro", self.label_font_size)
         filter_filepath_change_button = self.addButton("Cambiar directorio", self.change_dir_filter)
         filter_filepath_clear_button = self.addButton("Borrar filtro", self.clear_filter)
 
@@ -657,7 +660,7 @@ class ControlWindow(QWidget):
 
         self.title = self.addLabel("Centro Ágape Cristiano", 25)
 
-        self.start_button = self.addButton("Comenzar", self.startCapture)
+        self.start_button = self.addButton("Capturar", self.startCapture)
         self.calibrate_button = self.addButton("Calibrar", self.calibrate)
         self.select_camera_button = self.addButton("Seleccionar cámara", self.select_camera)
         self.open_config_button = self.addButton("Abrir configuración", self.open_config)
