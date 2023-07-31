@@ -111,11 +111,19 @@ class ImageProcessor():
         self.filter_filepath = filter_filepath
 
     def apply_filter(self, image):
-        filter_image = Image.open(self.filter_filepath)
+        filter_image = Image.open(self.filter_filepath).convert("RGBA")
         filter_image = filter_image.resize(image.size)
         image.paste(filter_image, (0, 0), filter_image)
 
         return image
+    
+    def apply_stamp(self, images, images_size):
+        if len(self.stamp_filepath) and os.path.exists(self.stamp_filepath):
+            stamp_image = Image.open(open(self.stamp_filepath, "rb"))
+            stamp_image = stamp_image.resize((stamp_image.size[0], images_size[1]))
+            images.insert(0, stamp_image)
+
+        return images
 
     def append_horizontally(self, images, width, total_width, max_height):
         new_im_x = Image.new('RGB', (total_width, max_height), (255, 255, 255))
@@ -164,10 +172,7 @@ class ImageProcessor():
         images_size = images[0].size
         width, height = images_size
 
-        if len(self.stamp_filepath) and os.path.exists(self.stamp_filepath):
-            stamp_image = Image.open(open(self.stamp_filepath, "rb"))
-            stamp_image = stamp_image.resize((stamp_image.size[0], images_size[1]))
-            images.insert(0, stamp_image)
+        images = self.apply_stamp(images, images_size)
         # Adds stamp resized to common images size
 
         total_width = width * len(images) + self.border_size * len(images)
@@ -296,7 +301,7 @@ class QtSaveContentCapture(QtCapture):
 
         self.imageProcessor = ImageProcessor()
 
-        self.setWindowTitle('Ventana de Captura')
+        self.setWindowTitle('Centro Ágape Cristiano')
 
     def addLabel(self, text, fontSized):
         label = QLabel(text)
