@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
                                 QLabel, QApplication,
                                 QMessageBox, QLineEdit,
                                 QGridLayout, QFileDialog,
-                                QSizePolicy
+                                QSizePolicy, QVBoxLayout
                             )
 from PyQt5.QtGui import QPixmap
 
@@ -29,6 +29,7 @@ RESOLUTION_Y = 768
 A4_SIZE = {"width": 210, "height": 297}
 PT_MM_RELATION = 0.35
 FILE_SAVE_NAME = "imprimir_fotos"
+FONT_DEFAULT = ("Arial", 15)
 
 # TODO: Divide file in multiple files.
 
@@ -371,7 +372,7 @@ class QtCalibrationCapture(QtCapture):
 
     def addButton(self, text, callback=None):
         button = QPushButton(text)
-        button.setFont(QtGui.QFont('Arial', 15))
+        button.setFont(QtGui.QFont(*FONT_DEFAULT))
         button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
         if callback:
@@ -464,7 +465,7 @@ class QtSelectCameraCapture(QtCapture):
 
     def addButton(self, text, callback=None):
         button = QPushButton(text)
-        button.setFont(QtGui.QFont('Arial', 15))
+        button.setFont(QtGui.QFont(*FONT_DEFAULT))
         button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
         if callback:
@@ -521,7 +522,7 @@ class ConfigWindow(QWidget):
         
     def addButton(self, text, callback=None):
         button = QPushButton(text)
-        button.setFont(QtGui.QFont('Arial', 15))
+        button.setFont(QtGui.QFont(*FONT_DEFAULT))
         button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
         if callback:
@@ -646,12 +647,13 @@ class ControlWindow(QWidget):
         self.initUI()
 
         self.setWindowTitle('Panel de Control')
-        self.showFullScreen()
-        self.showMaximized()
+        self.setGeometry(0, 0, 500, 700)
+        # self.showMaximized()
+        self.show()
 
     def addButton(self, text, callback=None):
         button = QPushButton(text)
-        button.setFont(QtGui.QFont('Arial', 15))
+        button.setFont(QtGui.QFont(*FONT_DEFAULT))
         button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
         if callback:
@@ -662,12 +664,13 @@ class ControlWindow(QWidget):
     def addLabel(self, text, fontSize):
         label = QLabel(text)
         label.setFont(QtGui.QFont('Arial', fontSize))
+        label.setAlignment(Qt.AlignCenter)
 
         return label
 
     def initUI(self):
         self.icon = self.addLabel("", 25)
-        pixmap = QPixmap('icono.png')
+        pixmap = QPixmap('data/images/icono.png')
         self.icon.setPixmap(pixmap)
 
         self.title = self.addLabel("Centro Ágape Cristiano", 25)
@@ -680,18 +683,18 @@ class ControlWindow(QWidget):
         self.prepare_to_print_button = self.addButton("Preparar para imprimir", self.prepare_to_print)
         self.quit_button = self.addButton("Salir", self.endCapture)
 
-        gbox = QGridLayout(self)
-        self.setLayout(gbox)
+        vbox = QVBoxLayout(self)
+        self.setLayout(vbox)
 
-        gbox.addWidget(self.icon, 0, 0)
-        gbox.addWidget(self.title, 0, 1)
-        gbox.addWidget(self.start_button, 1, 0)
-        gbox.addWidget(self.calibrate_button, 1, 1)
-        gbox.addWidget(self.select_camera_button, 2, 0)
-        gbox.addWidget(self.open_config_button, 2, 1)
-        gbox.addWidget(self.open_explorer_button, 3, 0)
-        gbox.addWidget(self.prepare_to_print_button, 3, 1)
-        gbox.addWidget(self.quit_button, 4, 1)
+        vbox.addWidget(self.icon)
+        vbox.addWidget(self.title)
+        vbox.addWidget(self.start_button)
+        vbox.addWidget(self.calibrate_button)
+        vbox.addWidget(self.select_camera_button)
+        vbox.addWidget(self.open_config_button)
+        vbox.addWidget(self.open_explorer_button)
+        vbox.addWidget(self.prepare_to_print_button)
+        vbox.addWidget(self.quit_button)
 
     def calibrate(self):
         if not self.capture:
@@ -762,7 +765,7 @@ class ControlWindow(QWidget):
             self.capture.setWindowFlags(QtCore.Qt.Tool)
 
         self.capture.start()
-        self.capture.show()
+        self.capture.showFullScreen()
 
     def endCapture(self):
         if self.capture:
