@@ -1,6 +1,6 @@
 import os
 
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import (
                                 QWidget, QPushButton,
                                 QLabel, QLineEdit,
@@ -31,6 +31,7 @@ class ConfigManager():
             "images_session": "3",
             "config": CONFIG_FILEPATH,
             "main_folder": MAIN_FOLDER,
+            "open_on_save": False,
             "stamp_filepath": "",
             "filter_filepath": ""
         }
@@ -111,6 +112,13 @@ class ConfigWindow(QWidget):
         label.setFont(QtGui.QFont('Arial', fontSize))
 
         return label
+    
+    def addCheckButton(self, text, callback, fontSize):
+        check = QtWidgets.QCheckBox(self)
+        check.setText(text)
+        check.toggled.connect(callback)
+
+        return check
 
     def initUI(self):
         images_per_session_label = self.addLabel("Imágenes por sesión", self.label_font_size)
@@ -121,6 +129,14 @@ class ConfigWindow(QWidget):
 
         self.main_folder_label = self.addLabel(self.all_config["main_folder"], self.label_font_size)
         main_folder_button = self.addButton("Cambiar directorio", self.change_dir_main_folder)
+
+        open_files_on_save_label = self.addLabel("Abrir al guardar", self.label_font_size)
+        self.open_files_on_save_checkbutton = self.addCheckButton("No abrir imagen", self.open_files_on_save, self.label_font_size)
+        if self.all_config["open_on_save"] == "True":
+            self.open_files_on_save_checkbutton.setChecked(True)
+        else:
+            self.open_files_on_save_checkbutton.setChecked(False)
+        # Set current value to checkbox
 
         self.stamp_filepath_label = self.addLabel(self.all_config["stamp_filepath"] or "Directorio estampa", self.label_font_size)
         stamp_filepath_change_button = self.addButton("Cambiar directorio", self.change_dir_stamp)
@@ -142,14 +158,16 @@ class ConfigWindow(QWidget):
         gbox.addWidget(change_dir_button, 1, 1)
         gbox.addWidget(self.main_folder_label, 2, 0)
         gbox.addWidget(main_folder_button, 2, 1)
-        gbox.addWidget(self.stamp_filepath_label, 3, 0)
-        gbox.addWidget(stamp_filepath_change_button, 3, 1)
-        gbox.addWidget(stamp_filepath_clear_button, 3, 2)
-        gbox.addWidget(self.filter_filepath_label, 4, 0)
-        gbox.addWidget(filter_filepath_change_button, 4, 1)
-        gbox.addWidget(filter_filepath_clear_button, 4, 2)
-        gbox.addWidget(save_button, 5, 1)
-        gbox.addWidget(cancel_button, 5, 2)
+        gbox.addWidget(open_files_on_save_label, 3, 0)
+        gbox.addWidget(self.open_files_on_save_checkbutton, 3, 1),
+        gbox.addWidget(self.stamp_filepath_label, 4, 0)
+        gbox.addWidget(stamp_filepath_change_button, 4, 1)
+        gbox.addWidget(stamp_filepath_clear_button, 4, 2)
+        gbox.addWidget(self.filter_filepath_label, 5, 0)
+        gbox.addWidget(filter_filepath_change_button, 5, 1)
+        gbox.addWidget(filter_filepath_clear_button, 5, 2)
+        gbox.addWidget(save_button, 6, 1)
+        gbox.addWidget(cancel_button, 6, 2)
 
     def change_dir_config(self):
         fname = QFileDialog.getOpenFileName(self, 'Seleccionar archivo', 
@@ -170,6 +188,16 @@ class ConfigWindow(QWidget):
             return
         
         self.all_config["main_folder"] = directory
+
+    def open_files_on_save(self):
+        status = self.sender().isChecked()
+
+        if status == True:
+            self.open_files_on_save_checkbutton.setText("Abrir imagen")
+        else:
+            self.open_files_on_save_checkbutton.setText("No abrir imagen")
+
+        self.all_config["open_on_save"] = status
 
     def change_dir_stamp(self):
         fname = QFileDialog.getOpenFileName(self, 'Seleccionar archivo', 
