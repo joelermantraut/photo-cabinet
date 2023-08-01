@@ -87,7 +87,7 @@ class ControlWindow(QWidget):
         os.system(f"start {MAIN_FOLDER}")
 
     def prepare_to_print(self):
-        fnames = QFileDialog.getOpenFileNames(self, 'Seleccionar archivo', 
+        fnames = QFileDialog.getOpenFileNames(self, 'Seleccionar archivos', 
            MAIN_FOLDER, "Image files (*.jpg *.png *.jpeg)")
 
         folder_name = QFileDialog.getExistingDirectory(self, 'Seleccionar directorio')
