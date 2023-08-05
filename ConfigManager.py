@@ -28,6 +28,8 @@ class ConfigManager():
         self.config_dict = {
             "face_detection_coeff": "0.8",
             "camera_index": "0",
+            "resolution_x": "800",
+            "resolution_y": "640",
             "images_session": "3",
             "config": CONFIG_FILEPATH,
             "main_folder": MAIN_FOLDER,
@@ -127,6 +129,12 @@ class ConfigWindow(QWidget):
         self.config_dir_label = self.addLabel(self.all_config["config"], self.label_font_size)
         change_dir_button = self.addButton("Cambiar directorio", self.change_dir_config)
 
+        config_resolution_x = self.addLabel("Resolución (x)", self.label_font_size)
+        self.config_resolution_x_lineedit = self.addLineEdit(self.all_config["resolution_x"])
+
+        config_resolution_y = self.addLabel("Resolución (y)", self.label_font_size)
+        self.config_resolution_y_lineedit = self.addLineEdit(self.all_config["resolution_y"])
+
         self.main_folder_label = self.addLabel(self.all_config["main_folder"], self.label_font_size)
         main_folder_button = self.addButton("Cambiar directorio", self.change_dir_main_folder)
 
@@ -156,18 +164,22 @@ class ConfigWindow(QWidget):
         gbox.addWidget(self.images_session_entry, 0, 1)
         gbox.addWidget(self.config_dir_label, 1, 0)
         gbox.addWidget(change_dir_button, 1, 1)
-        gbox.addWidget(self.main_folder_label, 2, 0)
-        gbox.addWidget(main_folder_button, 2, 1)
-        gbox.addWidget(open_files_on_save_label, 3, 0)
-        gbox.addWidget(self.open_files_on_save_checkbutton, 3, 1),
-        gbox.addWidget(self.stamp_filepath_label, 4, 0)
-        gbox.addWidget(stamp_filepath_change_button, 4, 1)
-        gbox.addWidget(stamp_filepath_clear_button, 4, 2)
-        gbox.addWidget(self.filter_filepath_label, 5, 0)
-        gbox.addWidget(filter_filepath_change_button, 5, 1)
-        gbox.addWidget(filter_filepath_clear_button, 5, 2)
-        gbox.addWidget(save_button, 6, 1)
-        gbox.addWidget(cancel_button, 6, 2)
+        gbox.addWidget(config_resolution_x, 2, 0)
+        gbox.addWidget(self.config_resolution_x_lineedit, 2, 1)
+        gbox.addWidget(config_resolution_y, 3, 0)
+        gbox.addWidget(self.config_resolution_y_lineedit, 3, 1)
+        gbox.addWidget(self.main_folder_label, 4, 0)
+        gbox.addWidget(main_folder_button, 4, 1)
+        gbox.addWidget(open_files_on_save_label, 5, 0)
+        gbox.addWidget(self.open_files_on_save_checkbutton, 5, 1),
+        gbox.addWidget(self.stamp_filepath_label, 6, 0)
+        gbox.addWidget(stamp_filepath_change_button, 6, 1)
+        gbox.addWidget(stamp_filepath_clear_button, 6, 2)
+        gbox.addWidget(self.filter_filepath_label, 7, 0)
+        gbox.addWidget(filter_filepath_change_button, 7, 1)
+        gbox.addWidget(filter_filepath_clear_button, 7, 2)
+        gbox.addWidget(save_button, 8, 1)
+        gbox.addWidget(cancel_button, 8, 2)
 
     def change_dir_config(self):
         fname = QFileDialog.getOpenFileName(self, 'Seleccionar archivo', 
@@ -236,6 +248,13 @@ class ConfigWindow(QWidget):
         images_per_session = self.images_session_entry.text()
         if images_per_session != "":
             self.all_config["images_session"] = images_per_session
+
+        resolution_x = self.config_resolution_x_lineedit.text()
+        if resolution_x != "":
+            self.all_config["resolution_x"] = resolution_x
+        resolution_y = self.config_resolution_y_lineedit.text()
+        if resolution_y != "":
+            self.all_config["resolution_y"] = resolution_y
 
         configActions = ConfigManager()
         configActions.save(self.all_config)

@@ -142,7 +142,7 @@ class ControlWindow(QWidget):
             self.capture.setWindowFlags(QtCore.Qt.Tool)
 
         self.capture.start()
-        self.capture.showFullScreen()
+        self.capture.showMaximized()
 
     def endCapture(self):
         if self.capture:
