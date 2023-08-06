@@ -15,6 +15,7 @@ from PyQt5.QtGui import QPixmap
 from globals import *
 from QtCapture import QtSaveContentCapture, QtCalibrationCapture, QtSelectCameraCapture
 from ConfigManager import ConfigWindow
+from update import Update
 
 class ControlWindow(QWidget):
     def __init__(self):
@@ -58,6 +59,7 @@ class ControlWindow(QWidget):
         self.open_config_button = self.addButton("Abrir configuración", self.open_config)
         self.open_explorer_button = self.addButton("Abrir carpeta de imágenes", self.open_explorer)
         self.prepare_to_print_button = self.addButton("Preparar para imprimir", self.prepare_to_print)
+        self.update_button = self.addButton("Update", self.update)
         self.quit_button = self.addButton("Salir", self.endCapture)
 
         vbox = QVBoxLayout(self)
@@ -71,6 +73,7 @@ class ControlWindow(QWidget):
         vbox.addWidget(self.open_config_button)
         vbox.addWidget(self.open_explorer_button)
         vbox.addWidget(self.prepare_to_print_button)
+        vbox.addWidget(self.update_button)
         vbox.addWidget(self.quit_button)
 
     def calibrate(self):
@@ -123,6 +126,13 @@ class ControlWindow(QWidget):
     def open_config(self):
         self.configWindow = ConfigWindow()
         self.configWindow.show()
+
+    def update(self):
+        local_directory = "."
+        # Current directory
+
+        updater = Update()
+        updater.update_software(REPOSITORY_URL, local_directory)
 
     def select_camera(self):
         if not self.capture:

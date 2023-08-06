@@ -11,3 +11,4 @@ A4_SIZE = {"width": 210, "height": 297}
 PT_MM_RELATION = 0.35
 FILE_SAVE_NAME = "imprimir_fotos"
 FONT_DEFAULT = ("Arial", 15)
+REPOSITORY_URL = "https://github.com/joelermantraut/photo-cabinet"

@@ -9,7 +9,7 @@ from ControlWindow import ControlWindow
 
 def main():
     global CONFIG_FILENAME, CONFIG_FILEPATH, MAIN_FOLDER, IMAGES_PER_SESSION, \
-            FILE_SAVE_NAME, RESOLUTION_X, RESOLUTION_Y
+            FILE_SAVE_NAME, RESOLUTION_X, RESOLUTION_Y, REPOSITORY_URL
 
     argparsing = ArgParsing()
     args = argparsing.get()
