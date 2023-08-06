@@ -25,7 +25,7 @@ class ControlWindow(QWidget):
         self.initUI()
 
         self.setWindowTitle('Panel de Control')
-        self.setGeometry(0, 0, 500, 700)
+        self.setGeometry(0, 0, 500, 650)
         self.show()
 
     def addButton(self, text, callback=None):
