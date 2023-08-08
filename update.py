@@ -19,15 +19,15 @@ class Update():
 
             if current_branch.commit == remote_branch.commit:
                 print("Software is already up to date.")
+                return 0
             else:
                 print("Updating software...")
                 repo.git.pull()
-
-            print("Update completed.")
+                print("Update completed.")
+                return 1
         else:
             print("Local path does not exist")
-
-        sleep(5)
+            return -1
 
 if __name__ == "__main__":
     repository_url = "https://github.com/joelermantraut/photo-cabinet" 

@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
                                 QWidget, QPushButton,
                                 QMessageBox, QFileDialog,
                                 QSizePolicy, QVBoxLayout,
-                                QLabel
+                                QLabel, QMessageBox
                             )
 from PyQt5.QtGui import QPixmap
 
@@ -45,6 +45,19 @@ class ControlWindow(QWidget):
         label.setAlignment(Qt.AlignCenter)
 
         return label
+    
+    def showMessage(self, title, text, options=None):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setWindowTitle(title)
+        msgBox.setText(text)
+
+        if options is None:
+            msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        else:
+            msgBox.setStandardButtons(options[0] | options[1])
+
+        return msgBox.exec()
 
     def initUI(self):
         self.icon = self.addLabel("", 25)
@@ -59,7 +72,7 @@ class ControlWindow(QWidget):
         self.open_config_button = self.addButton("Abrir configuración", self.open_config)
         self.open_explorer_button = self.addButton("Abrir carpeta de imágenes", self.open_explorer)
         self.prepare_to_print_button = self.addButton("Preparar para imprimir", self.prepare_to_print)
-        self.update_button = self.addButton("Update", self.update)
+        self.update_button = self.addButton("Actualizar", self.update)
         self.quit_button = self.addButton("Salir", self.endCapture)
 
         vbox = QVBoxLayout(self)
@@ -131,8 +144,22 @@ class ControlWindow(QWidget):
         local_directory = "."
         # Current directory
 
+        response = self.showMessage("Actualizacion", "Actualizacion. Por favor, no cierre el programa.")
+
+        if response == QMessageBox.Cancel:
+            return
+
         updater = Update()
-        updater.update_software(REPOSITORY_URL, local_directory)
+        result = updater.update_software(REPOSITORY_URL, local_directory)
+
+        if result == 0:
+            _ = self.showMessage("Actualizacion", "El programa ya esta actualizado.")
+        elif result == 1:
+            _ = self.showMessage("Actualizacion", "El programa fue actualizado correctamente.")
+        elif result == -1:
+            _ = self.showMessage("Actualizacion", "No se ha podido actualizar. Consulte al servicio técnico.")
+        else:
+            raise Exception("Something went wrong")
 
     def select_camera(self):
         if not self.capture:
