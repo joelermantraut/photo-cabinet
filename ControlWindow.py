@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
                                 QWidget, QPushButton,
                                 QMessageBox, QFileDialog,
                                 QSizePolicy, QVBoxLayout,
-                                QLabel, QMessageBox
+                                QLabel
                             )
 from PyQt5.QtGui import QPixmap
 
