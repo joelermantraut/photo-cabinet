@@ -13,6 +13,8 @@ class ArgParsing():
         self.ap.add_argument("-s", "--save-filename", required=False, help="Sets filename of pdf save file")
         self.ap.add_argument("-x", "--res-x", required=False, help="Sets resoluition x parameter")
         self.ap.add_argument("-y", "--res-y", required=False, help="Sets resolution y parameter")
+        self.ap.add_argument("-e", "--window-h", required=False, help="Window height parameter")
+        self.ap.add_argument("-w", "--window-w", required=False, help="Window width parameter")
 
     def get(self):
         return vars(self.ap.parse_args())

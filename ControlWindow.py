@@ -18,7 +18,7 @@ from ConfigManager import ConfigWindow
 from update import Update
 
 class ControlWindow(QWidget):
-    def __init__(self):
+    def __init__(self, WINDOW_WIDTH, WINDOW_HEIGHT):
         QWidget.__init__(self)
         self.capture = None
         self.calibrateWindow = None
@@ -26,7 +26,7 @@ class ControlWindow(QWidget):
         self.initUI()
 
         self.setWindowTitle('Panel de Control')
-        self.setGeometry(0, 0, 500, 650)
+        self.setGeometry(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
         self.show()
 
     def addButton(self, text, callback=None):

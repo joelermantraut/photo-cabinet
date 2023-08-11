@@ -10,6 +10,9 @@ from ControlWindow import ControlWindow
 def main():
     global CONFIG_FILENAME, CONFIG_FILEPATH, MAIN_FOLDER, IMAGES_PER_SESSION, \
             FILE_SAVE_NAME, RESOLUTION_X, RESOLUTION_Y, REPOSITORY_URL
+    
+    WINDOW_HEIGHT = 750
+    WINDOW_WIDTH = 500
 
     argparsing = ArgParsing()
     args = argparsing.get()
@@ -27,13 +30,17 @@ def main():
         RESOLUTION_X = args["res_x"]
     if args["res_y"]:
         RESOLUTION_Y = args["res_y"]
+    if args["window_h"]:
+        WINDOW_HEIGHT = int(args["window_h"])
+    if args["window_w"]:
+        WINDOW_WIDTH = int(args["window_w"])
 
     configActions = ConfigManager()
     configActions.save()
     # Saves changes, and create directories
 
     app = QApplication(sys.argv)
-    control_window = ControlWindow()
+    control_window = ControlWindow(WINDOW_WIDTH, WINDOW_HEIGHT)
     # Keep var to not destroy object
 
     sys.exit(app.exec_())
