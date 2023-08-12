@@ -64,7 +64,7 @@ class ControlWindow(QWidget):
         pixmap = QPixmap('data/images/icono.png')
         self.icon.setPixmap(pixmap)
 
-        self.title = self.addLabel("Centro Ágape Cristiano", 25)
+        self.title = self.addLabel("Centro Ágape Cristiano", 22)
 
         self.start_button = self.addButton("Capturar", self.startCapture)
         self.calibrate_button = self.addButton("Calibrar", self.calibrate)
