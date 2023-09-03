@@ -1,6 +1,4 @@
 import os
-from fpdf import FPDF
-from PIL import Image
 
 from PyQt5.Qt import Qt
 from PyQt5 import QtCore, QtGui
@@ -15,6 +13,7 @@ from PyQt5.QtGui import QPixmap
 from globals import *
 from QtCapture import QtSaveContentCapture, QtCalibrationCapture, QtSelectCameraCapture
 from ConfigManager import ConfigWindow
+from PrintingManager import PrintingManager
 from update import Update
 
 class ControlWindow(QWidget):
@@ -114,28 +113,13 @@ class ControlWindow(QWidget):
         # Case of cancelled selection
 
         files_to_print = fnames[0]
-
         pdf_path = f"{folder_name}/{FILE_SAVE_NAME}.pdf"
 
-        pdf = FPDF("P", "pt")
-        pdf.add_page()
+        # Gets module and process images
 
-        actual_height = 0
-        for image in files_to_print:
-            PILImage = Image.open(image)
-            width, height = PILImage.size
-            real_height = height * (A4_SIZE["width"] / PT_MM_RELATION) / width
-            if (actual_height + real_height) > A4_SIZE["height"] / PT_MM_RELATION:
-                pdf.add_page()
-                actual_height = 0
+        printing_manager = PrintingManager()
+        printing_manager.prepare_to_print(pdf_path, files_to_print)
 
-            pdf.image(image, 0, actual_height, A4_SIZE["width"] / PT_MM_RELATION)
-            actual_height += real_height + 10
-
-        pdf.output(pdf_path, "F")
-
-        # https://stackoverflow.com/questions/27327513/create-pdf-from-a-list-of-images
-        
     def open_config(self):
         self.configWindow = ConfigWindow()
         self.configWindow.show()
