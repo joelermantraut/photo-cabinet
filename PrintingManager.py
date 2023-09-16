@@ -1,5 +1,6 @@
 from fpdf import FPDF
 from PIL import Image
+import time
 
 from globals import A4_SIZE, PT_MM_RELATION
 
@@ -11,8 +12,10 @@ class PrintingManager():
         pdf = FPDF("P", "pt")
         pdf.add_page()
 
+        images_len = len(files_to_print)
+
         actual_height = 0
-        for image in files_to_print:
+        for image_index, image in enumerate(files_to_print):
             PILImage = Image.open(image)
             width, height = PILImage.size
             real_height = height * (A4_SIZE["width"] / PT_MM_RELATION) / width
@@ -22,6 +25,9 @@ class PrintingManager():
 
             pdf.image(image, 0, actual_height, A4_SIZE["width"] / PT_MM_RELATION)
             actual_height += real_height + 10
+
+            # Update progress bar
+            time.sleep(1)
 
         pdf.output(pdf_path, "F")
 

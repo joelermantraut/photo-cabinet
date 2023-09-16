@@ -57,6 +57,15 @@ class ControlWindow(QWidget):
             msgBox.setStandardButtons(options[0] | options[1])
 
         return msgBox.exec()
+    
+    def showInfo(self, title, text):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setWindowTitle(title)
+        msgBox.setText(text)
+        msgBox.setStandardButtons(QMessageBox.Ok)
+
+        return msgBox.exec()
 
     def initUI(self):
         self.icon = self.addLabel("", 25)
@@ -115,10 +124,14 @@ class ControlWindow(QWidget):
         files_to_print = fnames[0]
         pdf_path = f"{folder_name}/{FILE_SAVE_NAME}.pdf"
 
+        self.showMessage("Imprimiendo...", "Imprimiendo. Paciencia. Avisaremos en cualquier caso.")
+
         # Gets module and process images
 
         printing_manager = PrintingManager()
         printing_manager.prepare_to_print(pdf_path, files_to_print)
+
+        self.showInfo("Impresion lista", "Se genero el archivo PDF correctamente. La impresión puede comenzarse.")
 
     def open_config(self):
         self.configWindow = ConfigWindow()
